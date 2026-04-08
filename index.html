@@ -1,0 +1,3878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --surface: #1e1e2e;
+    --surface2: #252535;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --accent: #7c6af7;
+    --accent2: #a89bf7;
+    --accent-glow: rgba(124,106,247,0.25);
+    --text: #f0eeff;
+    --text2: #9a94b8;
+    --text3: #5a5570;
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.15);
+    --amber: #fbbf24;
+    --red: #f87171;
+    --font-main: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --r: 16px;
+    --r-sm: 10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  .ambient {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 70% 20%, rgba(124,106,247,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 20% 80%, rgba(74,222,128,0.05) 0%, transparent 60%);
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 860px;
+    padding: 32px 24px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--accent2); }
+
+  .streak {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text2);
+    font-family: var(--font-mono);
+  }
+  .streak-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber);
+  }
+
+  /* Timer card */
+  .timer-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 24px;
+    padding: 40px 36px 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .timer-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, var(--accent-glow), transparent);
+    pointer-events: none;
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg3);
+    border-radius: var(--r-sm);
+    padding: 4px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .mode-tab {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
+  }
+  .mode-tab.active {
+    background: var(--surface2);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .mode-tab:hover:not(.active) { color: var(--text2); }
+
+  /* Timer ring */
+  .timer-ring-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-svg {
+    position: absolute;
+    top: 0; left: 0;
+    transform: rotate(-90deg);
+    width: 220px; height: 220px;
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: var(--bg3);
+    stroke-width: 6;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: url(#ringGrad);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+  }
+
+  .timer-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 1;
+  }
+
+  .timer-display {
+    font-family: var(--font-mono);
+    font-size: 58px;
+    font-weight: 300;
+    letter-spacing: -2px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .timer-label {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* Controls */
+  .timer-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .btn-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 16px;
+  }
+  .btn-icon:hover { border-color: var(--border); color: var(--text); background: var(--surface2); }
+  .btn-icon svg { width: 18px; height: 18px; }
+
+  .btn-play {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 0 24px var(--accent-glow);
+    font-size: 20px;
+  }
+  .btn-play:hover { transform: scale(1.06); box-shadow: 0 0 36px var(--accent-glow); }
+  .btn-play:active { transform: scale(0.97); }
+  .btn-play svg { width: 26px; height: 26px; }
+
+  /* Duration picker */
+  .duration-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dur-btn {
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dur-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .dur-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .stat-icon {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  /* Music section */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: -8px;
+  }
+
+  .music-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--r);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .music-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .track {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+  .track:hover { background: var(--bg3); }
+  .track.active { background: var(--bg3); border-color: var(--border2); }
+
+  .track-thumb {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .track-info { flex: 1; min-width: 0; }
+  .track-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+  .track-playing {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 16px;
+  }
+
+  .bar {
+    width: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: bounce 0.8s ease-in-out infinite alternate;
+  }
+  .bar:nth-child(1) { animation-delay: 0s; }
+  .bar:nth-child(2) { animation-delay: 0.15s; }
+  .bar:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    from { height: 4px; }
+    to { height: 14px; }
+  }
+
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 4px;
+  }
+
+  .vol-icon { font-size: 16px; color: var(--text3); }
+
+  .vol-slider {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--bg3);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .vol-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  /* Tasks */
+  .tasks-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--r);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .tasks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tasks-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .add-task-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text2);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .add-task-btn:hover { background: var(--surface2); color: var(--accent2); }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .task-item:last-child { border-bottom: none; }
+
+  .task-check {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border2);
+    background: transparent;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .task-item.done .task-check {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .check-svg { width: 12px; height: 12px; stroke: #fff; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity 0.15s; }
+  .task-item.done .check-svg { opacity: 1; }
+
+  .task-text {
+    font-size: 14px;
+    color: var(--text);
+    flex: 1;
+    transition: color 0.15s;
+  }
+  .task-item.done .task-text { color: var(--text3); text-decoration: line-through; }
+
+  .task-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--bg3);
+    color: var(--text3);
+    letter-spacing: 0.3px;
+  }
+
+  .task-input-wrap {
+    display: flex;
+    gap: 8px;
+  }
+
+  .task-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--r-sm);
+    color: var(--text);
+    font-family: var(--font-main);
+    font-size: 14px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .task-input:focus { border-color: var(--accent); }
+  .task-input::placeholder { color: var(--text3); }
+
+  .task-submit {
+    padding: 8px 16px;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--r-sm);
+    color: #fff;
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .task-submit:hover { background: var(--accent2); }
+
+  .task-input-wrap.hidden { display: none; }
+
+  /* Progress bar */
+  .progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .progress-row { display: flex; align-items: center; justify-content: space-between; }
+  .progress-title { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 1.5px; }
+  .progress-pct { font-family: var(--font-mono); font-size: 12px; color: var(--accent2); }
+  .progress-bar-bg { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.3s ease; }
+
+  /* Notification */
+  .notif {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    z-index: 100;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+  }
+  .notif.show { transform: translateX(-50%) translateY(0); }
+
+  /* Session complete overlay */
+  .session-complete {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,15,0.85);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .session-complete.show { opacity: 1; pointer-events: all; }
+
+  .complete-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 24px;
+    padding: 48px 48px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    max-width: 360px;
+    width: 90%;
+  }
+
+  .complete-emoji { font-size: 56px; line-height: 1; }
+  .complete-title { font-size: 28px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+  .complete-sub { font-size: 15px; color: var(--text2); line-height: 1.6; }
+
+  .complete-btn {
+    margin-top: 8px;
+    padding: 12px 32px;
+    background: var(--accent);
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    font-family: var(--font-main);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .complete-btn:hover { background: var(--accent2); transform: scale(1.03); }
+
+  @media (max-width: 600px) {
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+    .timer-display { font-size: 46px; }
+    .timer-ring-wrap { width: 180px; height: 180px; }
+    .ring-svg { width: 180px; height: 180px; }
+    .timer-card { padding: 28px 20px 28px; }
+    .complete-card { padding: 36px 28px; }
+  }
+
+  :root {
+    --bg: #07111f;
+    --bg2: #0d1a2e;
+    --bg3: #14253f;
+    --surface: rgba(7, 17, 31, 0.84);
+    --surface2: rgba(15, 28, 48, 0.95);
+    --border: rgba(149, 198, 255, 0.12);
+    --border2: rgba(149, 198, 255, 0.22);
+    --accent: #56d8ff;
+    --accent2: #ffab66;
+    --accent-glow: rgba(86, 216, 255, 0.26);
+    --text: #eef6ff;
+    --text2: #a8c2de;
+    --text3: #6f8dad;
+    --green: #7cf7be;
+    --green-dim: rgba(124, 247, 190, 0.16);
+    --amber: #ffab66;
+    --red: #ff7d96;
+    --font-main: 'Sora', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --r: 20px;
+    --r-sm: 14px;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(86, 216, 255, 0.18), transparent 28%),
+      radial-gradient(circle at 88% 12%, rgba(255, 171, 102, 0.16), transparent 24%),
+      linear-gradient(155deg, #05101b 0%, #0a1728 45%, #10213c 100%);
+    color: var(--text);
+    font-family: var(--font-main);
+  }
+
+  .ambient {
+    background:
+      radial-gradient(ellipse 60% 40% at 14% 10%, rgba(86, 216, 255, 0.14) 0%, transparent 72%),
+      radial-gradient(ellipse 50% 36% at 92% 8%, rgba(255, 171, 102, 0.12) 0%, transparent 66%),
+      radial-gradient(ellipse 42% 30% at 20% 88%, rgba(124, 247, 190, 0.08) 0%, transparent 62%);
+  }
+
+  .app {
+    max-width: 1120px;
+    padding: 42px 18px 46px;
+    gap: 18px;
+  }
+
+  .header,
+  .hero-strip,
+  .timer-card,
+  .stats-row,
+  .music-card,
+  .tasks-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header {
+    align-items: flex-start;
+    gap: 16px;
+    padding: 6px 2px 2px;
+  }
+
+  .logo {
+    font-size: clamp(24px, 3vw, 38px);
+    letter-spacing: -1.4px;
+    line-height: 0.95;
+  }
+
+  .logo span {
+    color: var(--accent2);
+  }
+
+  .streak {
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(8, 20, 35, 0.78);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+  }
+
+  .streak-dot {
+    background: var(--green);
+    box-shadow: 0 0 12px rgba(124, 247, 190, 0.8);
+  }
+
+  .hero-strip,
+  .timer-card,
+  .music-card,
+  .tasks-card,
+  .stat-card,
+  .complete-card {
+    border: 1px solid var(--border);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04), transparent 18%),
+      var(--surface);
+    backdrop-filter: blur(22px);
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.28);
+  }
+
+  .hero-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 16px;
+    padding: 24px;
+    border-radius: 28px;
+  }
+
+  .hero-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-kicker,
+  .utility-head span:first-child,
+  .yt-section-top span:first-child {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+
+  .hero-title {
+    font-size: clamp(30px, 5vw, 52px);
+    line-height: 0.98;
+    letter-spacing: -0.08em;
+    max-width: 12ch;
+  }
+
+  .hero-text {
+    max-width: 60ch;
+    color: var(--text2);
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  .hero-pills {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .hero-pill {
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(149, 198, 255, 0.12);
+    background: rgba(8, 20, 35, 0.78);
+  }
+
+  .hero-pill strong {
+    display: block;
+    color: var(--text);
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+
+  .hero-pill span {
+    color: var(--text2);
+    line-height: 1.55;
+    font-size: 13px;
+  }
+
+  .timer-card {
+    border-radius: 30px;
+    padding: 28px;
+    gap: 24px;
+  }
+
+  .timer-card::before {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(86, 216, 255, 0.22), transparent 45%),
+      radial-gradient(circle at 88% 100%, rgba(255, 171, 102, 0.12), transparent 24%);
+  }
+
+  .mode-tabs {
+    max-width: 430px;
+    padding: 6px;
+    border: 1px solid rgba(149, 198, 255, 0.08);
+    background: rgba(9, 20, 35, 0.72);
+  }
+
+  .mode-tab {
+    padding: 12px 0;
+    font-size: 13px;
+    color: var(--text3);
+    letter-spacing: 0.03em;
+  }
+
+  .mode-tab.active {
+    background: linear-gradient(135deg, rgba(86, 216, 255, 0.18), rgba(255, 171, 102, 0.12));
+    color: var(--text);
+    box-shadow: none;
+  }
+
+  .timer-ring-wrap,
+  .ring-svg {
+    width: 260px;
+    height: 260px;
+  }
+
+  .ring-bg {
+    stroke: rgba(149, 198, 255, 0.14);
+    stroke-width: 8;
+  }
+
+  .ring-progress {
+    stroke-width: 8;
+    filter: drop-shadow(0 0 12px rgba(86, 216, 255, 0.35));
+  }
+
+  .timer-inner {
+    gap: 8px;
+  }
+
+  .timer-display {
+    font-size: clamp(56px, 10vw, 76px);
+    letter-spacing: -4px;
+  }
+
+  .timer-ring-wrap.is-wide,
+  .timer-ring-wrap.is-wide .ring-svg {
+    width: 300px;
+    height: 300px;
+  }
+
+  .timer-ring-wrap.is-wide .timer-inner {
+    width: 72%;
+    height: 72%;
+  }
+
+  .timer-ring-wrap.is-wide .timer-display {
+    font-size: clamp(48px, 8vw, 66px);
+    letter-spacing: -3px;
+  }
+
+  .timer-label {
+    letter-spacing: 0.28em;
+    color: var(--text3);
+  }
+
+  .timer-controls {
+    gap: 12px;
+  }
+
+  .btn-icon,
+  .dur-btn,
+  .add-task-btn,
+  .task-submit,
+  .task-input,
+  .vol-slider,
+  .yt-input,
+  .yt-action,
+  .yt-preset {
+    transition: all 0.18s ease;
+  }
+
+  .btn-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(8, 20, 35, 0.78);
+  }
+
+  .btn-play {
+    width: 86px;
+    height: 86px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #05101a;
+    box-shadow: 0 18px 36px rgba(86, 216, 255, 0.22);
+  }
+
+  .duration-row,
+  .adjust-row {
+    justify-content: center;
+  }
+
+  .dur-btn {
+    padding: 10px 18px;
+    background: rgba(8, 20, 35, 0.76);
+  }
+
+  .dur-btn.active {
+    background: linear-gradient(135deg, rgba(86, 216, 255, 0.22), rgba(255, 171, 102, 0.16));
+    color: var(--text);
+  }
+
+  .timer-utility-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .utility-head,
+  .yt-section-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .utility-head span:last-child,
+  .yt-section-top span:last-child,
+  .music-note {
+    color: var(--text2);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .adjust-btn {
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 171, 102, 0.18);
+    background: rgba(255, 171, 102, 0.1);
+    color: #ffd9bb;
+    cursor: pointer;
+  }
+
+  .adjust-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 171, 102, 0.35);
+  }
+
+  .adjust-btn.negative {
+    border-color: rgba(255, 125, 150, 0.22);
+    background: rgba(255, 125, 150, 0.08);
+    color: #ffcbd5;
+  }
+
+  .stats-row {
+    gap: 14px;
+  }
+
+  .stat-card {
+    border-radius: 24px;
+    padding: 20px 18px;
+  }
+
+  .stat-value {
+    font-size: 34px;
+    letter-spacing: -0.08em;
+  }
+
+  .stats-row .stat-card:nth-child(1) .stat-icon,
+  .stats-row .stat-card:nth-child(2) .stat-icon,
+  .stats-row .stat-card:nth-child(3) .stat-icon {
+    font-size: 0;
+    margin-bottom: 10px;
+  }
+
+  .stats-row .stat-card:nth-child(1) .stat-icon::after,
+  .stats-row .stat-card:nth-child(2) .stat-icon::after,
+  .stats-row .stat-card:nth-child(3) .stat-icon::after {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent2);
+  }
+
+  .stats-row .stat-card:nth-child(1) .stat-icon::after { content: 'S1'; }
+  .stats-row .stat-card:nth-child(2) .stat-icon::after { content: 'TM'; }
+  .stats-row .stat-card:nth-child(3) .stat-icon::after { content: 'OK'; }
+
+  .music-card,
+  .tasks-card {
+    border-radius: 26px;
+    padding: 22px;
+    gap: 16px;
+  }
+
+  .yt-preset-row,
+  .yt-search-row,
+  .yt-player-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .yt-preset {
+    flex: 1 1 180px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: rgba(8, 20, 35, 0.8);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .yt-preset strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .yt-preset span {
+    color: var(--text2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .yt-preset.active {
+    border-color: rgba(86, 216, 255, 0.34);
+    background: linear-gradient(135deg, rgba(86, 216, 255, 0.18), rgba(255, 171, 102, 0.1));
+  }
+
+  .yt-input {
+    flex: 1 1 260px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--border2);
+    background: rgba(8, 20, 35, 0.78);
+    color: var(--text);
+    outline: none;
+  }
+
+  .yt-input:focus,
+  .task-input:focus {
+    border-color: rgba(86, 216, 255, 0.42);
+    box-shadow: 0 0 0 4px rgba(86, 216, 255, 0.08);
+  }
+
+  .yt-action {
+    padding: 12px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border2);
+    background: rgba(8, 20, 35, 0.84);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .yt-action.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #04101a;
+    border-color: transparent;
+    font-weight: 700;
+  }
+
+  .yt-player-meta {
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: rgba(8, 20, 35, 0.8);
+  }
+
+  .track-meta strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
+
+  .track-meta span {
+    color: var(--text2);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .vol-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 210px;
+  }
+
+  .volume-row.vol-wrap {
+    gap: 14px;
+  }
+
+  .volume-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 16px 20px 12px 18px;
+    border: 2px solid rgba(255,255,255,0.1);
+    background: #2b1235;
+  }
+
+  .volume-badge {
+    min-width: 58px;
+    padding: 8px 10px;
+    border-radius: 12px 16px 10px 14px;
+    background: #ff8cbc;
+    color: #2c0b23;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .vol-slider-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 170px;
+  }
+
+  .vol-help {
+    color: var(--text2);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .volume-row.vol-wrap {
+    justify-content: flex-end;
+    padding: 0;
+  }
+
+  .volume-row .vol-icon {
+    display: none;
+  }
+
+  .vol-wrap label {
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+  }
+
+  .yt-player-shell {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(circle at top, rgba(86, 216, 255, 0.18), transparent 40%),
+      rgba(7, 17, 31, 0.92);
+  }
+
+  #ytPlayer {
+    width: 100%;
+    height: 100%;
+  }
+
+  .yt-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    color: var(--text2);
+    background: linear-gradient(180deg, rgba(7,17,31,0.4), rgba(7,17,31,0.08));
+    transition: opacity 0.2s ease;
+  }
+
+  .yt-placeholder.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .placeholder-chip {
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(86, 216, 255, 0.22);
+    background: rgba(86, 216, 255, 0.1);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .tasks-header {
+    align-items: center;
+  }
+
+  .tasks-title {
+    font-size: 17px;
+    letter-spacing: -0.04em;
+  }
+
+  .task-item {
+    padding: 12px 0;
+  }
+
+  .task-input-wrap {
+    gap: 10px;
+  }
+
+  .task-input {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(8, 20, 35, 0.76);
+  }
+
+  .task-submit {
+    padding: 0 18px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #06111d;
+    font-weight: 700;
+  }
+
+  .notif {
+    background: rgba(7, 17, 31, 0.94);
+    backdrop-filter: blur(14px);
+  }
+
+  @media (max-width: 860px) {
+    .hero-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-pills {
+      grid-template-columns: 1fr;
+    }
+
+    .vol-wrap,
+    .yt-player-meta {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .app {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    .hero-strip,
+    .timer-card,
+    .music-card,
+    .tasks-card,
+    .complete-card {
+      padding: 20px;
+    }
+
+    .timer-ring-wrap,
+    .ring-svg {
+      width: 210px;
+      height: 210px;
+    }
+
+    .yt-search-row {
+      flex-direction: column;
+    }
+  }
+
+  :root {
+    --bg: #140b2b;
+    --bg2: #24114a;
+    --bg3: #351b68;
+    --surface: rgba(31, 14, 63, 0.82);
+    --surface2: rgba(53, 27, 104, 0.94);
+    --border: rgba(255, 255, 255, 0.12);
+    --border2: rgba(255, 255, 255, 0.22);
+    --accent: #47e7ff;
+    --accent2: #ffb84d;
+    --accent-glow: rgba(71, 231, 255, 0.3);
+    --text: #fff7fd;
+    --text2: #e5d9ff;
+    --text3: #bca8ff;
+    --green: #80ffbf;
+    --amber: #ffb84d;
+    --red: #ff6ea8;
+    --font-main: 'Bricolage Grotesque', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 8% 8%, rgba(71, 231, 255, 0.22), transparent 22%),
+      radial-gradient(circle at 92% 10%, rgba(255, 110, 168, 0.26), transparent 24%),
+      radial-gradient(circle at 80% 82%, rgba(255, 184, 77, 0.20), transparent 24%),
+      linear-gradient(135deg, #14071f 0%, #21114a 36%, #3b1765 72%, #160a2d 100%);
+  }
+
+  .ambient {
+    background:
+      radial-gradient(circle at 10% 14%, rgba(71, 231, 255, 0.24), transparent 26%),
+      radial-gradient(circle at 88% 12%, rgba(255, 110, 168, 0.18), transparent 24%),
+      radial-gradient(circle at 30% 92%, rgba(255, 184, 77, 0.18), transparent 24%);
+    filter: saturate(130%);
+  }
+
+  .app {
+    gap: 20px;
+  }
+
+  .header {
+    align-items: center;
+  }
+
+  .logo {
+    text-shadow: 0 0 20px rgba(71, 231, 255, 0.2);
+  }
+
+  .streak {
+    background: linear-gradient(135deg, rgba(71, 231, 255, 0.18), rgba(255, 184, 77, 0.16));
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .hero-strip,
+  .timer-card,
+  .music-card,
+  .tasks-card,
+  .stat-card,
+  .complete-card {
+    background:
+      linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02) 28%, rgba(255,255,255,0.05) 62%, rgba(255,255,255,0.03)),
+      linear-gradient(135deg, rgba(71, 231, 255, 0.14), rgba(255, 110, 168, 0.1) 48%, rgba(255, 184, 77, 0.14)),
+      rgba(26, 9, 53, 0.82);
+    border-color: rgba(255,255,255,0.16);
+    box-shadow:
+      0 30px 70px rgba(15, 3, 36, 0.46),
+      inset 0 1px 0 rgba(255,255,255,0.14);
+  }
+
+  .hero-strip {
+    border-radius: 34px;
+    transform: rotate(-0.4deg);
+  }
+
+  .hero-strip::before,
+  .timer-card::after,
+  .music-card::after,
+  .tasks-card::after {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 36px;
+    background: linear-gradient(135deg, rgba(71, 231, 255, 0.26), rgba(255, 110, 168, 0.12));
+    filter: blur(12px);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .hero-strip::before {
+    right: -40px;
+    top: -40px;
+    transform: rotate(18deg);
+  }
+
+  .timer-card::after {
+    left: -56px;
+    bottom: -84px;
+    transform: rotate(24deg);
+  }
+
+  .music-card::after {
+    right: -56px;
+    bottom: -92px;
+    transform: rotate(-16deg);
+  }
+
+  .tasks-card::after {
+    left: -50px;
+    top: -78px;
+    transform: rotate(-20deg);
+  }
+
+  .hero-kicker,
+  .utility-head span:first-child,
+  .yt-section-top span:first-child,
+  .section-label {
+    color: #ffd58f;
+    text-shadow: 0 0 18px rgba(255, 184, 77, 0.18);
+  }
+
+  .section-label {
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 184, 77, 0.12);
+    border: 1px solid rgba(255, 184, 77, 0.18);
+  }
+
+  .hero-title {
+    max-width: 10ch;
+    color: #fff7fd;
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  }
+
+  .hero-pill {
+    background: linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04));
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  .hero-pill:nth-child(1) {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+
+  .hero-pill:nth-child(2) {
+    transform: translateY(6px) rotate(1.2deg);
+  }
+
+  .hero-pill:nth-child(3) {
+    transform: translateY(3px) rotate(-0.8deg);
+  }
+
+  .hero-pill:nth-child(4) {
+    transform: translateY(-2px) rotate(1deg);
+  }
+
+  .mode-tabs {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .mode-tab {
+    font-weight: 700;
+  }
+
+  .mode-tab.active {
+    background: linear-gradient(135deg, rgba(71, 231, 255, 0.28), rgba(255, 110, 168, 0.16), rgba(255, 184, 77, 0.24));
+  }
+
+  .timer-ring-wrap {
+    filter: drop-shadow(0 18px 34px rgba(11, 3, 29, 0.4));
+  }
+
+  .timer-inner {
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent 42%),
+      linear-gradient(160deg, rgba(71, 231, 255, 0.16), rgba(255, 110, 168, 0.08) 52%, rgba(18, 9, 40, 0.96));
+    width: 68%;
+    height: 68%;
+    border-radius: 50%;
+    justify-content: center;
+    padding: 18px;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  .timer-display {
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(71, 231, 255, 0.18);
+  }
+
+  .btn-icon {
+    border-color: rgba(255,255,255,0.16);
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+  }
+
+  .btn-play {
+    background: linear-gradient(135deg, #47e7ff 0%, #7dffcf 24%, #ffb84d 70%, #ff6ea8 100%);
+    box-shadow:
+      0 24px 40px rgba(255, 110, 168, 0.18),
+      0 14px 32px rgba(71, 231, 255, 0.22);
+  }
+
+  .dur-btn,
+  .adjust-btn,
+  .yt-action,
+  .task-submit,
+  .add-task-btn {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  .dur-btn.active {
+    background: linear-gradient(135deg, rgba(71, 231, 255, 0.30), rgba(255, 110, 168, 0.18), rgba(255, 184, 77, 0.24));
+  }
+
+  .adjust-btn {
+    background: linear-gradient(135deg, rgba(255, 184, 77, 0.24), rgba(255, 110, 168, 0.14));
+    border-color: rgba(255, 184, 77, 0.3);
+  }
+
+  .adjust-btn.negative {
+    background: linear-gradient(135deg, rgba(255, 110, 168, 0.20), rgba(255, 110, 168, 0.08));
+  }
+
+  .stats-row {
+    gap: 16px;
+  }
+
+  .stat-card {
+    border-radius: 28px;
+    transform: translateY(0);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .stat-card:nth-child(1) {
+    background:
+      linear-gradient(145deg, rgba(71, 231, 255, 0.22), rgba(71, 231, 255, 0.06) 58%, rgba(255,255,255,0.04)),
+      rgba(21, 11, 45, 0.92);
+  }
+
+  .stat-card:nth-child(2) {
+    background:
+      linear-gradient(145deg, rgba(255, 184, 77, 0.20), rgba(255, 110, 168, 0.06) 58%, rgba(255,255,255,0.04)),
+      rgba(21, 11, 45, 0.92);
+  }
+
+  .stat-card:nth-child(3) {
+    background:
+      linear-gradient(145deg, rgba(128, 255, 191, 0.18), rgba(71, 231, 255, 0.06) 58%, rgba(255,255,255,0.04)),
+      rgba(21, 11, 45, 0.92);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+  }
+
+  .stat-value {
+    color: #fff;
+    text-shadow: 0 10px 24px rgba(0,0,0,0.2);
+  }
+
+  .yt-preset {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
+      rgba(30, 13, 58, 0.82);
+    border-radius: 22px;
+    min-height: 96px;
+  }
+
+  .yt-preset:nth-child(1) {
+    transform: rotate(-1.2deg);
+  }
+
+  .yt-preset:nth-child(2) {
+    transform: translateY(6px) rotate(1deg);
+  }
+
+  .yt-preset:nth-child(3) {
+    transform: rotate(-0.6deg);
+  }
+
+  .yt-preset.active {
+    background:
+      linear-gradient(135deg, rgba(71, 231, 255, 0.34), rgba(255, 110, 168, 0.18), rgba(255, 184, 77, 0.28)),
+      rgba(32, 13, 62, 0.92);
+    box-shadow: 0 16px 30px rgba(255, 110, 168, 0.12);
+  }
+
+  .yt-input,
+  .task-input {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.14);
+  }
+
+  .yt-action {
+    background: linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04));
+  }
+
+  .yt-action.primary,
+  .task-submit {
+    background: linear-gradient(135deg, #47e7ff 0%, #ffb84d 56%, #ff6ea8 100%);
+    color: #180721;
+  }
+
+  .track-meta,
+  .volume-row.vol-wrap,
+  .yt-player-shell,
+  .task-input-wrap,
+  .task-item,
+  .progress-wrap,
+  .complete-card {
+    position: relative;
+    z-index: 1;
+  }
+
+  .track-meta {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .yt-player-shell {
+    border-width: 2px;
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  .task-item {
+    border-bottom-color: rgba(255,255,255,0.12);
+  }
+
+  .task-check {
+    border-width: 2px;
+  }
+
+  .task-item.done .task-check {
+    box-shadow: 0 0 20px rgba(128, 255, 191, 0.18);
+  }
+
+  .progress-bar-bg {
+    height: 8px;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .progress-bar-fill {
+    background: linear-gradient(90deg, #47e7ff, #ff6ea8, #ffb84d);
+  }
+
+  .notif {
+    border-width: 2px;
+    background: linear-gradient(135deg, rgba(71, 231, 255, 0.22), rgba(255, 110, 168, 0.18), rgba(27, 10, 52, 0.96));
+  }
+
+  .complete-card {
+    background:
+      linear-gradient(145deg, rgba(71, 231, 255, 0.18), rgba(255, 110, 168, 0.14), rgba(255, 184, 77, 0.18)),
+      rgba(26, 9, 53, 0.96);
+    border-radius: 32px;
+  }
+
+  @media (max-width: 860px) {
+    .hero-strip,
+    .yt-preset,
+    .hero-pill {
+      transform: none !important;
+    }
+  }
+
+  .header {
+    position: relative;
+  }
+
+  .header::after {
+    content: 'focus radar';
+    position: absolute;
+    top: 2px;
+    left: 190px;
+    padding: 8px 12px;
+    border-radius: 14px 18px 10px 20px;
+    background: linear-gradient(135deg, rgba(255, 184, 77, 0.95), rgba(255, 110, 168, 0.92));
+    color: #27061d;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transform: rotate(-5deg);
+    box-shadow: 0 16px 28px rgba(31, 5, 44, 0.28);
+  }
+
+  .hero-strip {
+    grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+    border-radius: 34px 22px 42px 18px;
+    overflow: visible;
+  }
+
+  .hero-copy {
+    position: relative;
+    padding-right: 18px;
+  }
+
+  .hero-copy::after {
+    content: '';
+    position: absolute;
+    right: -2px;
+    top: 8px;
+    width: 2px;
+    height: calc(100% - 16px);
+    background: linear-gradient(180deg, rgba(71, 231, 255, 0.88), rgba(255, 110, 168, 0.65), transparent);
+    border-radius: 999px;
+  }
+
+  .hero-title {
+    font-size: clamp(34px, 5.5vw, 60px);
+    max-width: 9ch;
+  }
+
+  .hero-text {
+    max-width: 48ch;
+    font-size: 15px;
+  }
+
+  .hero-pills {
+    align-content: start;
+  }
+
+  .hero-pill {
+    border-radius: 22px 12px 22px 10px;
+  }
+
+  .hero-pill strong {
+    font-size: 16px;
+  }
+
+  .hero-pill:nth-child(1)::before,
+  .hero-pill:nth-child(2)::before,
+  .hero-pill:nth-child(3)::before,
+  .hero-pill:nth-child(4)::before {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #210822;
+    background: linear-gradient(135deg, #47e7ff, #ffb84d);
+  }
+
+  .hero-pill:nth-child(1)::before { content: '01'; }
+  .hero-pill:nth-child(2)::before { content: '02'; }
+  .hero-pill:nth-child(3)::before { content: '03'; }
+  .hero-pill:nth-child(4)::before { content: '04'; }
+
+  .timer-card {
+    border-radius: 44px 24px 34px 20px;
+    padding-top: 32px;
+    overflow: hidden;
+  }
+
+  .timer-card::before {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(71, 231, 255, 0.26), transparent 30%),
+      radial-gradient(circle at 100% 100%, rgba(255, 184, 77, 0.18), transparent 26%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 10px, rgba(255,255,255,0) 10px 22px);
+  }
+
+  .mode-tabs {
+    max-width: 470px;
+    border-radius: 18px 10px 18px 10px;
+  }
+
+  .mode-tab {
+    border-radius: 14px 8px 14px 8px;
+  }
+
+  .timer-controls {
+    position: relative;
+  }
+
+  .timer-controls::before {
+    content: 'session controls';
+    position: absolute;
+    top: -34px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    padding: 6px 10px;
+    border-radius: 10px 14px 10px 14px;
+    background: rgba(255,255,255,0.10);
+    color: #ffd58f;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .btn-icon {
+    border-radius: 18px;
+  }
+
+  .btn-play {
+    border-radius: 26px;
+    transform: rotate(-3deg);
+  }
+
+  .btn-play:hover {
+    transform: rotate(-3deg) translateY(-2px) scale(1.04);
+  }
+
+  .btn-play svg {
+    display: block;
+    shape-rendering: geometricPrecision;
+  }
+
+  .btn-play.is-running {
+    transform: none;
+  }
+
+  .btn-play.is-running:hover {
+    transform: translateY(-2px) scale(1.04);
+  }
+
+  .duration-row {
+    gap: 10px;
+  }
+
+  .dur-btn {
+    border-radius: 14px 18px 10px 18px;
+  }
+
+  .timer-utility-row {
+    margin-top: 6px;
+    padding: 16px 18px 18px;
+    border-radius: 26px 14px 24px 14px;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+      rgba(33, 11, 61, 0.9);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .adjust-row {
+    justify-content: flex-start;
+  }
+
+  .adjust-btn {
+    border-radius: 14px 18px 10px 18px;
+    font-weight: 700;
+  }
+
+  .stats-row {
+    grid-template-columns: 1.15fr 0.9fr 1fr;
+  }
+
+  .stat-card {
+    border-radius: 30px 18px 28px 16px;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: auto -18px -24px auto;
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.08);
+    transform: rotate(22deg);
+  }
+
+  .stat-label {
+    color: #ffd58f;
+  }
+
+  .music-card {
+    border-radius: 22px 42px 24px 20px;
+    background:
+      linear-gradient(135deg, rgba(255, 184, 77, 0.10), rgba(255, 110, 168, 0.10) 52%, rgba(71, 231, 255, 0.10)),
+      linear-gradient(180deg, rgba(255,255,255,0.06), transparent 24%),
+      rgba(32, 11, 61, 0.92);
+  }
+
+  .music-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 100%),
+      linear-gradient(180deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 100%);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.35), transparent 85%);
+    pointer-events: none;
+  }
+
+  .yt-preset-row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.95fr 1fr;
+    position: relative;
+    z-index: 2;
+  }
+
+  .yt-preset {
+    position: relative;
+    padding-top: 18px;
+  }
+
+  .yt-preset::after {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    font-weight: 800;
+    color: rgba(255,255,255,0.58);
+    text-transform: uppercase;
+  }
+
+  .yt-preset:nth-child(1)::after { content: 'live'; }
+  .yt-preset:nth-child(2)::after { content: 'mix'; }
+  .yt-preset:nth-child(3)::after { content: 'deep'; }
+
+  .yt-search-row {
+    align-items: stretch;
+  }
+
+  .yt-input,
+  .yt-action {
+    border-radius: 16px 20px 12px 18px;
+  }
+
+  .track-meta {
+    border-radius: 20px 12px 18px 12px;
+  }
+
+  .yt-player-shell {
+    border-radius: 28px 18px 24px 18px;
+  }
+
+  .tasks-card {
+    border-radius: 18px 36px 18px 30px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.08), transparent 18%),
+      linear-gradient(135deg, rgba(71, 231, 255, 0.08), rgba(128,255,191,0.08) 52%, rgba(255,184,77,0.08)),
+      rgba(26, 10, 49, 0.94);
+  }
+
+  .tasks-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 100% 32px;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .tasks-header {
+    align-items: flex-start;
+  }
+
+  .tasks-title {
+    font-size: 20px;
+  }
+
+  .add-task-btn {
+    border-radius: 14px 18px 10px 18px;
+    transform: rotate(4deg);
+  }
+
+  .task-input-wrap {
+    padding: 10px;
+    border-radius: 20px 12px 18px 12px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .task-input,
+  .task-submit {
+    border-radius: 14px 18px 12px 18px;
+  }
+
+  .task-item {
+    padding: 14px 0;
+  }
+
+  .task-item:nth-child(odd) {
+    transform: translateX(4px);
+  }
+
+  .task-item:nth-child(even) {
+    transform: translateX(-2px);
+  }
+
+  .progress-wrap {
+    padding-top: 4px;
+  }
+
+  .complete-card {
+    overflow: hidden;
+  }
+
+  .complete-card::before {
+    content: 'nice';
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    padding: 8px 12px;
+    border-radius: 14px 18px 12px 18px;
+    background: linear-gradient(135deg, rgba(71, 231, 255, 0.94), rgba(255, 184, 77, 0.92));
+    color: #2c0922;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transform: rotate(10deg);
+  }
+
+  .complete-btn {
+    border-radius: 16px 22px 14px 20px;
+  }
+
+  .notif {
+    border-radius: 18px 24px 16px 24px;
+  }
+
+  @media (max-width: 980px) {
+    .stats-row {
+      grid-template-columns: 1fr;
+    }
+
+    .header::after,
+    .timer-controls::before,
+    .complete-card::before {
+      display: none;
+    }
+
+    .hero-copy::after {
+      display: none;
+    }
+  }
+
+  /* Anti-generic pass: use glass only sparingly and give each section a distinct material */
+  .hero-strip,
+  .timer-card,
+  .music-card,
+  .tasks-card,
+  .stat-card,
+  .complete-card,
+  .streak,
+  .track-meta,
+  .timer-utility-row,
+  .task-input-wrap,
+  .yt-preset,
+  .yt-player-shell,
+  .mode-tabs {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .hero-strip,
+  .timer-card,
+  .music-card,
+  .tasks-card,
+  .stat-card,
+  .complete-card {
+    border-width: 2px;
+    border-style: solid;
+    box-shadow: 0 22px 0 rgba(19, 5, 31, 0.34), 0 34px 54px rgba(10, 2, 24, 0.34);
+  }
+
+  .header::after {
+    background: #ffd54a;
+    color: #2e0b24;
+    border: 2px solid #2e0b24;
+    box-shadow: 6px 6px 0 rgba(46, 11, 36, 0.18);
+  }
+
+  .streak {
+    background: #20123e;
+    border: 2px solid #8f7dff;
+    box-shadow: 0 10px 0 rgba(17, 6, 31, 0.18);
+  }
+
+  .hero-strip {
+    background:
+      radial-gradient(circle at 82% 18%, rgba(71, 231, 255, 0.18), transparent 20%),
+      linear-gradient(135deg, #2c1260 0%, #42186e 44%, #28114f 100%);
+    border-color: #8f7dff;
+    box-shadow: 0 26px 0 rgba(38, 15, 79, 0.45), 0 40px 70px rgba(14, 3, 34, 0.3);
+  }
+
+  .hero-strip::before {
+    width: 150px;
+    height: 150px;
+    background:
+      linear-gradient(135deg, #47e7ff, #8f7dff);
+    border: 2px solid rgba(22, 7, 40, 0.35);
+    border-radius: 30px;
+    filter: none;
+    opacity: 1;
+  }
+
+  .hero-copy::after {
+    background: linear-gradient(180deg, #47e7ff, #8f7dff, transparent);
+    width: 3px;
+  }
+
+  .hero-pill {
+    background: #2a1654;
+    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 0 rgba(19, 6, 34, 0.16);
+  }
+
+  .hero-pill:nth-child(1) {
+    background: #2b165a;
+    border-color: #6fe6ff;
+  }
+
+  .hero-pill:nth-child(2) {
+    background: #4f183d;
+    border-color: #ff8cbc;
+  }
+
+  .hero-pill:nth-child(3) {
+    background: #2b204e;
+    border-color: #8f7dff;
+  }
+
+  .hero-pill:nth-child(4) {
+    background: #473010;
+    border-color: #ffd54a;
+  }
+
+  .timer-card {
+    background:
+      radial-gradient(circle at 16% 12%, rgba(71, 231, 255, 0.12), transparent 18%),
+      linear-gradient(145deg, #0f1634 0%, #121c43 55%, #101734 100%);
+    border-color: #47e7ff;
+    box-shadow: 0 26px 0 rgba(8, 18, 46, 0.58), 0 40px 80px rgba(6, 10, 24, 0.34);
+  }
+
+  .timer-card::before {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(71, 231, 255, 0.16), transparent 28%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 8px, rgba(255,255,255,0) 8px 18px);
+  }
+
+  .timer-card::after {
+    background: linear-gradient(135deg, #47e7ff, #80ffbf);
+    border: 2px solid rgba(4, 26, 34, 0.3);
+    border-radius: 28px;
+    filter: none;
+    opacity: 0.9;
+  }
+
+  .mode-tabs {
+    background: #111b3f;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .mode-tab {
+    color: #c7d7ff;
+  }
+
+  .mode-tab.active {
+    background: #47e7ff;
+    color: #062232;
+  }
+
+  .timer-inner {
+    background:
+      radial-gradient(circle at 35% 24%, rgba(255,255,255,0.12), transparent 30%),
+      linear-gradient(160deg, #171d49, #0d1435 70%);
+    border: 2px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 0 0 6px rgba(71, 231, 255, 0.05);
+  }
+
+  .btn-icon {
+    background: #121d45;
+    border: 2px solid rgba(255,255,255,0.12);
+    box-shadow: 0 8px 0 rgba(11, 20, 48, 0.42);
+  }
+
+  .btn-play {
+    background: #ffd54a;
+    color: #20120a;
+    box-shadow: 0 12px 0 #c58d1a, 0 24px 36px rgba(255, 184, 77, 0.18);
+  }
+
+  .dur-btn {
+    background: #17214e;
+    border: 2px solid rgba(255,255,255,0.1);
+    color: #d7e4ff;
+  }
+
+  .dur-btn.active {
+    background: #8f7dff;
+    border-color: #c8bfff;
+    color: white;
+  }
+
+  .timer-utility-row {
+    background: #0f1838;
+    border: 2px dashed rgba(71, 231, 255, 0.3);
+  }
+
+  .adjust-btn {
+    background: #2b244f;
+    color: #fff3c8;
+    border: 2px solid #ffd54a;
+  }
+
+  .adjust-btn.negative {
+    background: #4a1d42;
+    color: #ffe0ea;
+    border-color: #ff8cbc;
+  }
+
+  .stats-row .stat-card:nth-child(1) {
+    background: linear-gradient(145deg, #162344, #1f315e);
+    border-color: #47e7ff;
+  }
+
+  .stats-row .stat-card:nth-child(2) {
+    background: linear-gradient(145deg, #482512, #693312);
+    border-color: #ffd54a;
+  }
+
+  .stats-row .stat-card:nth-child(3) {
+    background: linear-gradient(145deg, #173a31, #1d4b40);
+    border-color: #80ffbf;
+  }
+
+  .music-card {
+    background:
+      radial-gradient(circle at 88% 14%, rgba(255, 110, 168, 0.12), transparent 18%),
+      linear-gradient(145deg, #31112e 0%, #43153c 52%, #2c102a 100%);
+    border-color: #ff8cbc;
+    box-shadow: 0 26px 0 rgba(54, 19, 49, 0.52), 0 40px 80px rgba(23, 5, 20, 0.34);
+  }
+
+  .music-card::before {
+    display: none;
+  }
+
+  .music-card::after {
+    display: none;
+  }
+
+  .yt-preset {
+    background: #34153d;
+    border: 2px solid rgba(255,255,255,0.08);
+    box-shadow: 0 10px 0 rgba(41, 12, 30, 0.2);
+  }
+
+  .yt-preset:nth-child(1) {
+    background: #2b1f5b;
+    border-color: #8f7dff;
+  }
+
+  .yt-preset:nth-child(2) {
+    background: #4d1738;
+    border-color: #ff8cbc;
+  }
+
+  .yt-preset:nth-child(3) {
+    background: #493116;
+    border-color: #ffd54a;
+  }
+
+  .yt-preset.active {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 14px 0 rgba(32, 9, 24, 0.18);
+  }
+
+  .yt-input,
+  .yt-action {
+    background: #2b1235;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .yt-action.primary {
+    background: #ff8cbc;
+    color: #2c0b23;
+    border-color: #ffd2e2;
+  }
+
+  .track-meta {
+    background: #2a102f;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .volume-row.vol-wrap {
+    background: transparent;
+  }
+
+  .yt-player-shell {
+    background:
+      linear-gradient(145deg, #1a0a1f, #23102c 58%, #160713);
+    border: 2px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .yt-placeholder {
+    background:
+      linear-gradient(180deg, rgba(20, 7, 28, 0.55), rgba(20, 7, 28, 0.16));
+  }
+
+  .tasks-card {
+    background:
+      linear-gradient(145deg, #16101f 0%, #1b1328 100%);
+    border-color: #80ffbf;
+    box-shadow: 0 26px 0 rgba(16, 18, 20, 0.52), 0 40px 80px rgba(10, 7, 14, 0.34);
+  }
+
+  .tasks-card::before {
+    background:
+      linear-gradient(rgba(128,255,191,0.10) 1px, transparent 1px);
+    background-size: 100% 30px;
+    opacity: 0.45;
+  }
+
+  .tasks-card::after {
+    background: linear-gradient(135deg, #80ffbf, #47e7ff);
+    border: 2px solid rgba(7, 36, 27, 0.26);
+    border-radius: 24px;
+    filter: none;
+    opacity: 0.92;
+  }
+
+  .task-input-wrap {
+    background: #12181f;
+    border: 2px dashed rgba(128,255,191,0.28);
+  }
+
+  .task-input {
+    background: #161b24;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .task-submit {
+    background: #80ffbf;
+    color: #102117;
+    border: 2px solid #cffff0;
+  }
+
+  .add-task-btn {
+    background: #80ffbf;
+    color: #132318;
+    border: 2px solid #d2ffee;
+    box-shadow: 0 8px 0 rgba(24, 76, 56, 0.38);
+  }
+
+  .task-item {
+    border-bottom-color: rgba(128,255,191,0.14);
+  }
+
+  .progress-bar-bg {
+    background: rgba(255,255,255,0.09);
+  }
+
+  .progress-bar-fill {
+    background: linear-gradient(90deg, #80ffbf, #47e7ff);
+  }
+
+  .complete-card {
+    background: linear-gradient(145deg, #3f1544, #24103f 58%, #140a21);
+    border-color: #ff8cbc;
+  }
+
+  .notif {
+    background: #26113c;
+    border: 2px solid #8f7dff;
+  }
+
+  @media (max-width: 980px) {
+    .hero-strip,
+    .timer-card,
+    .music-card,
+    .tasks-card {
+      box-shadow: 0 18px 0 rgba(19, 5, 31, 0.24), 0 24px 40px rgba(10, 2, 24, 0.26);
+    }
+  }
+
+  .header::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .tasks-title {
+    color: #fff6d6;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .tasks-header {
+    position: relative;
+    z-index: 2;
+  }
+
+  .notification-banner {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 18px 22px 14px 20px;
+    background: #4a1d42;
+    border: 2px solid #ff8cbc;
+    color: #fff1f6;
+    box-shadow: 0 12px 0 rgba(55, 18, 47, 0.24);
+  }
+
+  .notification-banner.show {
+    display: flex;
+  }
+
+  .notification-banner strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+
+  .notification-banner span {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #ffe0ea;
+  }
+
+  .notification-banner button {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border-radius: 12px 16px 10px 16px;
+    border: 2px solid #ffd5e3;
+    background: #ff8cbc;
+    color: #330f24;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .notification-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 260;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(12, 4, 24, 0.54);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .notification-gate.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .notification-gate-card {
+    position: relative;
+    width: min(480px, 100%);
+    padding: 26px 24px 22px;
+    border-radius: 24px 28px 22px 26px;
+    border: 2px solid #8f7dff;
+    background: linear-gradient(145deg, #211046, #301456 60%, #1b0c36);
+    box-shadow: 0 30px 60px rgba(12, 4, 24, 0.42);
+    color: #fff7fd;
+  }
+
+  .notification-arrow {
+    position: fixed;
+    top: 18px;
+    right: 26px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #fff6d6;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .notification-arrow svg {
+    width: 86px;
+    height: 86px;
+    overflow: visible;
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.22));
+  }
+
+  .notification-arrow path {
+    stroke: #ffd54a;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .notification-gate-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #ffd58f;
+    margin-bottom: 10px;
+  }
+
+  .notification-gate-title {
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: -0.05em;
+    margin-bottom: 12px;
+  }
+
+  .notification-gate-copy {
+    color: #eadfff;
+    line-height: 1.65;
+    font-size: 14px;
+  }
+
+  .notification-gate-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .notification-gate-actions button {
+    padding: 12px 16px;
+    border-radius: 14px 18px 12px 18px;
+    border: 2px solid rgba(255,255,255,0.14);
+    background: #2d1450;
+    color: #fff7fd;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .notification-gate-actions .primary {
+    background: #ffd54a;
+    color: #2c1702;
+    border-color: #fff0a6;
+  }
+
+  .notification-gate-foot {
+    margin-top: 14px;
+    color: #d9cafc;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .notification-status-line {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #fff6d6;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  body.notification-gate-open .app,
+  body.notification-gate-open .notif,
+  body.notification-gate-open .session-complete {
+    filter: blur(14px);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  @media (max-width: 720px) {
+    .notification-arrow {
+      right: 12px;
+      top: 10px;
+      font-size: 10px;
+    }
+
+    .notification-arrow svg {
+      width: 62px;
+      height: 62px;
+    }
+
+    .notification-gate-card {
+      margin-top: 86px;
+    }
+
+    .notification-banner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+
+<div class="app">
+
+  <div class="header">
+    <div class="logo">focus<span>.studio</span></div>
+    <div class="streak">
+      <div class="streak-dot"></div>
+      <span id="streak-text">0 sessions today</span>
+    </div>
+  </div>
+
+  <div class="notification-banner" id="notificationBanner">
+    <div>
+      <strong>Notifications are off</strong>
+      <span>Timer popups and system alerts will be unavailable until browser notifications are allowed.</span>
+    </div>
+    <button type="button" onclick="requestNotificationAccess()">Enable</button>
+  </div>
+
+  <div class="hero-strip">
+    <div class="hero-copy">
+      <div class="hero-kicker">Study timer</div>
+      <div class="hero-title">A study timer with YouTube built in.</div>
+      <div class="hero-text">
+        Start a focus block, add more time without resetting it, keep a short task list on screen, and play a YouTube mix in the same tab. It is meant to feel simple and useful, not like a productivity app trying too hard.
+      </div>
+    </div>
+    <div class="hero-pills">
+      <div class="hero-pill">
+        <strong>Live timer extension</strong>
+        <span>Stretch the current run by 5, 10, or 15 minutes without resetting the clock.</span>
+      </div>
+      <div class="hero-pill">
+        <strong>YouTube presets</strong>
+        <span>Start with quick focus mixes or paste your own YouTube video or playlist link.</span>
+      </div>
+      <div class="hero-pill">
+        <strong>Sharper session view</strong>
+        <span>A stronger visual hierarchy makes the timer, stats, and goals easier to scan fast.</span>
+      </div>
+      <div class="hero-pill">
+        <strong>Still one file</strong>
+        <span>Everything stays self-contained inside the same HTML file for easy editing.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-card">
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="pomodoro" onclick="setMode('pomodoro', this)">Pomodoro</button>
+      <button class="mode-tab" data-mode="short" onclick="setMode('short', this)">Short Break</button>
+      <button class="mode-tab" data-mode="long" onclick="setMode('long', this)">Long Break</button>
+    </div>
+
+    <div class="timer-ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 220 220">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#7c6af7"/>
+            <stop offset="100%" stop-color="#a89bf7"/>
+          </linearGradient>
+        </defs>
+        <circle class="ring-bg" cx="110" cy="110" r="100"/>
+        <circle class="ring-progress" cx="110" cy="110" r="100" id="ringProgress"/>
+      </svg>
+      <div class="timer-inner">
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="timer-label" id="timerLabel">Focus</div>
+      </div>
+    </div>
+
+    <div class="timer-controls">
+      <button class="btn-icon" onclick="resetTimer()" title="Reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+      <button class="btn-play" id="playBtn" onclick="toggleTimer()">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+      </button>
+      <button class="btn-icon" onclick="skipTimer()" title="Skip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 4 15 12 5 20 5 4"/>
+          <line x1="19" y1="5" x2="19" y2="19"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="duration-row" id="durationRow">
+      <button class="dur-btn active" data-min="25" onclick="setDuration(25, this)">25 min</button>
+      <button class="dur-btn" data-min="45" onclick="setDuration(45, this)">45 min</button>
+      <button class="dur-btn" data-min="60" onclick="setDuration(60, this)">60 min</button>
+      <button class="dur-btn" data-min="90" onclick="setDuration(90, this)">90 min</button>
+    </div>
+
+    <div class="timer-utility-row">
+      <div class="utility-head">
+        <span>Live Adjust</span>
+        <span>These buttons work even while the timer is running</span>
+      </div>
+      <div class="adjust-row">
+        <button class="adjust-btn" onclick="adjustTimer(5)">+5 min</button>
+        <button class="adjust-btn" onclick="adjustTimer(10)">+10 min</button>
+        <button class="adjust-btn" onclick="adjustTimer(15)">+15 min</button>
+        <button class="adjust-btn negative" onclick="adjustTimer(-5)">-5 min</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value" id="sessionsCount">0</div>
+      <div class="stat-label">Sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏱</div>
+      <div class="stat-value" id="totalMins">0</div>
+      <div class="stat-label">Minutes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✓</div>
+      <div class="stat-value" id="tasksCount">0</div>
+      <div class="stat-label">Tasks done</div>
+    </div>
+  </div>
+
+  <!-- Music -->
+  <div class="section-label">YouTube Focus</div>
+  <div class="music-card">
+    <div class="yt-section-top">
+      <span>Real YouTube playback</span>
+      <span>Pick a preset or paste a YouTube link</span>
+    </div>
+    <div class="yt-preset-row" id="trackList"></div>
+    <div class="yt-search-row">
+      <input class="yt-input" id="ytInput" placeholder="Paste a YouTube video or playlist URL" onkeydown="if(event.key==='Enter')loadCustomTrack()">
+      <button class="yt-action primary" onclick="loadCustomTrack()">Load</button>
+      <button class="yt-action" onclick="searchYouTube()">Search</button>
+    </div>
+    <div class="track-meta">
+      <strong id="currentTrackName">No mix loaded yet</strong>
+      <span id="currentTrackSub">Use a preset or paste your own YouTube link to play inside the app.</span>
+    </div>
+    <div class="volume-row vol-wrap">
+      <label for="volSlider">Volume</label>
+      <div class="volume-control">
+        <div class="volume-badge" id="volumeValue">40%</div>
+        <div class="vol-slider-wrap">
+          <input type="range" class="vol-slider" id="volSlider" min="0" max="100" value="40" step="1" oninput="setVolume(this.value)">
+          <div class="vol-help">YouTube player volume</div>
+        </div>
+      </div>
+    </div>
+    <div class="yt-player-shell">
+      <div id="ytPlayer"></div>
+      <div class="yt-placeholder" id="ytPlaceholder">
+        <div class="placeholder-chip">YouTube player ready</div>
+        <div>Load a focus stream, playlist, or your own study beat link.</div>
+      </div>
+    </div>
+    <div class="music-note">Embedded YouTube search playlists were deprecated, so this version uses curated presets plus pasted YouTube URLs.</div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="tasks-card">
+    <div class="tasks-header">
+      <span class="tasks-title">Today's goals</span>
+      <button class="add-task-btn" onclick="toggleTaskInput()">+</button>
+    </div>
+
+    <div class="task-input-wrap hidden" id="taskInputWrap">
+      <input class="task-input" id="taskInput" placeholder="Add a task..." onkeydown="if(event.key==='Enter')addTask()"/>
+      <button class="task-submit" onclick="addTask()">Add</button>
+    </div>
+
+    <div id="taskList"></div>
+
+    <div class="progress-wrap" id="progressWrap" style="display:none">
+      <div class="progress-row">
+        <span class="progress-title">Progress</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="notification-gate" id="notificationGate">
+  <div class="notification-arrow" aria-hidden="true">
+    <svg viewBox="0 0 100 100">
+      <path d="M8 86 C 28 72, 44 56, 72 24"></path>
+      <path d="M60 26 L 76 24 L 74 40"></path>
+    </svg>
+    <span>click allow up here</span>
+  </div>
+  <div class="notification-gate-card">
+    <div class="notification-gate-kicker">Notifications</div>
+    <div class="notification-gate-title">Turn on timer alerts.</div>
+    <div class="notification-gate-copy">
+      This app uses browser notifications when a timer ends, plus a short sound. If you block them, the timer still works, but desktop alerts will be missing.
+    </div>
+    <div class="notification-gate-actions">
+      <button class="primary" type="button" onclick="requestNotificationAccess()">Enable notifications</button>
+      <button type="button" onclick="dismissNotificationGate()">Continue without them</button>
+    </div>
+    <div class="notification-status-line" id="notificationStatusLine">Status: checking</div>
+    <div class="notification-gate-foot">If you click Block, the site stays usable, but it will show a reminder that timer alerts are limited.</div>
+  </div>
+</div>
+
+<!-- Session Complete -->
+<div class="session-complete" id="sessionComplete">
+  <div class="complete-card">
+    <div class="complete-emoji">🎯</div>
+    <div class="complete-title">Session done!</div>
+    <div class="complete-sub" id="completeMsg">You focused for 25 minutes. Take a well-deserved break.</div>
+    <button class="complete-btn" onclick="dismissComplete()">Start break</button>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+const MODES = {
+  pomodoro: { label: 'Focus', color: '#7c6af7' },
+  short:    { label: 'Short Break', color: '#4ade80' },
+  long:     { label: 'Long Break', color: '#fbbf24' }
+};
+
+const TRACKS = [
+  { id: 'rain',    name: 'Rain on Window',    sub: 'Ambient · Nature',    emoji: '🌧️', freq: 220, type: 'rain' },
+  { id: 'lofi',    name: 'Lo-fi Beats',       sub: 'Study · Chill',       emoji: '🎵', freq: 174, type: 'lofi' },
+  { id: 'forest',  name: 'Forest Morning',    sub: 'Ambient · Nature',    emoji: '🌿', freq: 432, type: 'white' },
+  { id: 'deep',    name: 'Deep Focus',        sub: 'Binaural · Focus',    emoji: '🧠', freq: 40,  type: 'binaural' },
+  { id: 'cafe',    name: 'Café Murmur',       sub: 'Ambient · Social',    emoji: '☕', freq: 300, type: 'brown' },
+];
+
+let state = {
+  mode: 'pomodoro',
+  duration: 25 * 60,
+  visualDuration: 25 * 60,
+  remaining: 25 * 60,
+  running: false,
+  interval: null,
+  sessions: 0,
+  totalMins: 0,
+  currentTrack: null,
+  volume: 0.4,
+  tasks: [],
+  tasksDone: 0,
+  showTaskInput: false,
+  audioCtx: null,
+  audioNodes: [],
+};
+
+const circumference = 2 * Math.PI * 100;
+const ring = document.getElementById('ringProgress');
+ring.style.strokeDasharray = circumference;
+ring.style.strokeDashoffset = 0;
+
+function updateRing() {
+  const pct = state.remaining / state.duration;
+  ring.style.strokeDashoffset = circumference * (1 - pct);
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function setMode(mode, el) {
+  if (state.running) return;
+  state.mode = mode;
+  document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+
+  const defaults = { pomodoro: 25, short: 5, long: 15 };
+  const dur = defaults[mode];
+
+  document.getElementById('durationRow').style.display = mode === 'pomodoro' ? 'flex' : 'none';
+
+  setDuration(dur, null, true);
+  document.getElementById('timerLabel').textContent = MODES[mode].label;
+
+  if (mode === 'pomodoro') {
+    ring.style.stroke = 'url(#ringGrad)';
+  } else if (mode === 'short') {
+    ring.style.stroke = '#4ade80';
+  } else {
+    ring.style.stroke = '#fbbf24';
+  }
+}
+
+function setDuration(mins, el, silent) {
+  if (state.running) return;
+  if (el) {
+    document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  state.duration = mins * 60;
+  state.remaining = state.duration;
+  document.getElementById('timerDisplay').textContent = formatTime(state.remaining);
+  updateRing();
+}
+
+function toggleTimer() {
+  if (state.running) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+}
+
+function startTimer() {
+  state.running = true;
+  updatePlayBtn();
+  state.interval = setInterval(() => {
+    state.remaining--;
+    document.getElementById('timerDisplay').textContent = formatTime(state.remaining);
+    updateRing();
+    if (state.remaining <= 0) {
+      clearInterval(state.interval);
+      state.running = false;
+      updatePlayBtn();
+      onSessionEnd();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  state.running = false;
+  clearInterval(state.interval);
+  updatePlayBtn();
+}
+
+function resetTimer() {
+  pauseTimer();
+  state.remaining = state.duration;
+  document.getElementById('timerDisplay').textContent = formatTime(state.remaining);
+  updateRing();
+}
+
+function skipTimer() {
+  pauseTimer();
+  onSessionEnd();
+}
+
+function updatePlayBtn() {
+  const icon = document.getElementById('playIcon');
+  if (state.running) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+  } else {
+    icon.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+  }
+}
+
+function onSessionEnd() {
+  if (state.mode === 'pomodoro') {
+    state.sessions++;
+    state.totalMins += Math.round(state.duration / 60);
+    document.getElementById('sessionsCount').textContent = state.sessions;
+    document.getElementById('totalMins').textContent = state.totalMins;
+    document.getElementById('streak-text').textContent = `${state.sessions} session${state.sessions > 1 ? 's' : ''} today`;
+    const msg = `You focused for ${Math.round(state.duration/60)} minutes. Incredible work!`;
+    document.getElementById('completeMsg').textContent = msg;
+    document.getElementById('sessionComplete').classList.add('show');
+  } else {
+    notify('Break over — back to work! 💪');
+    state.remaining = state.duration;
+    document.getElementById('timerDisplay').textContent = formatTime(state.remaining);
+    updateRing();
+  }
+}
+
+function dismissComplete() {
+  document.getElementById('sessionComplete').classList.remove('show');
+  state.remaining = state.duration;
+  document.getElementById('timerDisplay').textContent = formatTime(state.remaining);
+  updateRing();
+}
+
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// Audio
+function getAudioCtx() {
+  if (!state.audioCtx) {
+    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return state.audioCtx;
+}
+
+function stopAllAudio() {
+  state.audioNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  state.audioNodes = [];
+}
+
+function playTrack(id) {
+  const ctx = getAudioCtx();
+  stopAllAudio();
+  state.currentTrack = id;
+  renderTracks();
+
+  const track = TRACKS.find(t => t.id === id);
+  if (!track) return;
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.value = state.volume;
+  masterGain.connect(ctx.destination);
+
+  if (track.type === 'rain') {
+    const bufSize = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.4;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 800;
+    filter.Q.value = 0.5;
+    src.connect(filter);
+    filter.connect(masterGain);
+    src.start();
+    state.audioNodes.push(src);
+  } else if (track.type === 'lofi') {
+    const notes = [261, 311, 370, 440, 329, 392];
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        if (!state.audioNodes.length) return;
+        function playNote() {
+          if (state.currentTrack !== 'lofi') return;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          g.gain.setValueAtTime(0, ctx.currentTime);
+          g.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.1);
+          g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.7);
+          setTimeout(playNote, 800 + i * 120);
+        }
+        playNote();
+      }, i * 300);
+    });
+    const marker = { stop: () => { state.currentTrack = null; } };
+    state.audioNodes.push(marker);
+  } else if (track.type === 'white') {
+    const bufSize = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const f1 = ctx.createBiquadFilter(); f1.type = 'lowpass'; f1.frequency.value = 600;
+    const f2 = ctx.createBiquadFilter(); f2.type = 'highpass'; f2.frequency.value = 80;
+    src.connect(f1); f1.connect(f2); f2.connect(masterGain);
+    src.start();
+    state.audioNodes.push(src);
+  } else if (track.type === 'binaural') {
+    const leftOsc = ctx.createOscillator();
+    const rightOsc = ctx.createOscillator();
+    const merger = ctx.createChannelMerger(2);
+    leftOsc.frequency.value = 200;
+    rightOsc.frequency.value = 240;
+    leftOsc.type = 'sine'; rightOsc.type = 'sine';
+    const lg = ctx.createGain(); lg.gain.value = 0.2;
+    const rg = ctx.createGain(); rg.gain.value = 0.2;
+    leftOsc.connect(lg); lg.connect(merger, 0, 0);
+    rightOsc.connect(rg); rg.connect(merger, 0, 1);
+    merger.connect(masterGain);
+    leftOsc.start(); rightOsc.start();
+    state.audioNodes.push(leftOsc, rightOsc);
+  } else if (track.type === 'brown') {
+    const bufSize = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < bufSize; i++) {
+      const w = Math.random() * 2 - 1;
+      data[i] = (last + 0.02 * w) / 1.02;
+      last = data[i];
+      data[i] *= 3.5;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    src.connect(masterGain);
+    src.start();
+    state.audioNodes.push(src);
+  }
+
+  state._masterGain = masterGain;
+}
+
+function stopTrack() {
+  stopAllAudio();
+  state.currentTrack = null;
+  renderTracks();
+}
+
+function setVolume(val) {
+  state.volume = val / 100;
+  if (state._masterGain) state._masterGain.gain.value = state.volume;
+}
+
+function renderTracks() {
+  const list = document.getElementById('trackList');
+  list.innerHTML = TRACKS.map(t => {
+    const isActive = state.currentTrack === t.id;
+    return `<div class="track ${isActive ? 'active' : ''}" onclick="${isActive ? 'stopTrack()' : `playTrack('${t.id}')`}">
+      <div class="track-thumb" style="background:${isActive ? 'rgba(124,106,247,0.15)' : 'var(--bg3)'}">
+        ${t.emoji}
+      </div>
+      <div class="track-info">
+        <div class="track-name">${t.name}</div>
+        <div class="track-sub">${t.sub}</div>
+      </div>
+      ${isActive ? `<div class="track-playing"><div class="bar" style="height:8px"></div><div class="bar"></div><div class="bar" style="height:6px"></div></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// Tasks
+function toggleTaskInput() {
+  state.showTaskInput = !state.showTaskInput;
+  const wrap = document.getElementById('taskInputWrap');
+  wrap.classList.toggle('hidden', !state.showTaskInput);
+  if (state.showTaskInput) document.getElementById('taskInput').focus();
+}
+
+function addTask() {
+  const input = document.getElementById('taskInput');
+  const text = input.value.trim();
+  if (!text) return;
+  state.tasks.push({ text, done: false, id: Date.now() });
+  input.value = '';
+  state.showTaskInput = false;
+  document.getElementById('taskInputWrap').classList.add('hidden');
+  renderTasks();
+}
+
+function toggleTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  task.done = !task.done;
+  state.tasksDone = state.tasks.filter(t => t.done).length;
+  document.getElementById('tasksCount').textContent = state.tasksDone;
+  renderTasks();
+}
+
+function renderTasks() {
+  const list = document.getElementById('taskList');
+  if (!state.tasks.length) {
+    list.innerHTML = `<p style="font-size:13px;color:var(--text3);text-align:center;padding:8px 0">Add your study goals above</p>`;
+    document.getElementById('progressWrap').style.display = 'none';
+    return;
+  }
+  list.innerHTML = state.tasks.map(t => `
+    <div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})">
+      <div class="task-check">
+        <svg class="check-svg" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <span class="task-text">${t.text}</span>
+    </div>
+  `).join('');
+
+  const total = state.tasks.length;
+  const done = state.tasks.filter(t => t.done).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressWrap').style.display = 'flex';
+}
+
+// Init
+renderTracks();
+renderTasks();
+document.getElementById('timerDisplay').textContent = formatTime(state.remaining);
+updateRing();
+
+document.getElementById('durationRow').style.display = 'flex';
+</script>
+<script>
+const FOCUS_STORAGE_KEY = 'focus-studio-state-v2';
+const FOCUS_NOTIFICATION_GATE_KEY = 'focus-studio-notification-gate-dismissed-v2';
+
+const FOCUS_MODES = {
+  pomodoro: { label: 'Focus', color: 'url(#ringGrad)', defaultMinutes: 25 },
+  short: { label: 'Short Break', color: '#7cf7be', defaultMinutes: 5 },
+  long: { label: 'Long Break', color: '#ffab66', defaultMinutes: 15 }
+};
+
+const YT_TRACKS = [
+  { id: 'lofi-girl', name: 'Lofi Girl stream', sub: 'Classic study stream', kind: 'video', value: 'jfKfPfyJRdk' },
+  { id: 'sweet-girl', name: 'Sweet Girl playlist', sub: 'Lo-fi playlist', kind: 'playlist', value: 'PLqknkDPsDk3afCSylXnMIYRRb8UAAMO4F' },
+  { id: 'deep-zone', name: 'Deep Zone Flow', sub: 'Ambient focus playlist', kind: 'playlist', value: 'PLUrnxvhuvpSU0b2YvM4Gf1V3bHnLAcvBj' }
+];
+
+let ytPlayer = null;
+let ytApiReady = false;
+let ytPlayerReady = false;
+let notifyTimer = null;
+
+function getNotificationSupportState() {
+  if (!('Notification' in window)) return 'unsupported';
+  return Notification.permission;
+}
+
+function markNotificationGateSeen() {
+  localStorage.setItem(FOCUS_NOTIFICATION_GATE_KEY, '1');
+}
+
+function shouldShowNotificationGate() {
+  const gateDismissed = localStorage.getItem(FOCUS_NOTIFICATION_GATE_KEY) === '1';
+  return !gateDismissed && getNotificationSupportState() === 'default';
+}
+
+function updateNotificationUI() {
+  const banner = document.getElementById('notificationBanner');
+  const gate = document.getElementById('notificationGate');
+  const permission = getNotificationSupportState();
+  const bannerTitle = banner.querySelector('strong');
+  const bannerCopy = banner.querySelector('span');
+  const bannerButton = banner.querySelector('button');
+  const gateTitle = gate.querySelector('.notification-gate-title');
+  const gateCopy = gate.querySelector('.notification-gate-copy');
+  const gateFoot = gate.querySelector('.notification-gate-foot');
+  const gateArrowLabel = gate.querySelector('.notification-arrow span');
+  const statusLine = document.getElementById('notificationStatusLine');
+
+  statusLine.textContent = `Status: ${permission}`;
+
+  document.body.classList.toggle('notification-gate-open', shouldShowNotificationGate());
+  gate.classList.toggle('show', shouldShowNotificationGate());
+
+  if (permission === 'granted') {
+    banner.classList.remove('show');
+    gateTitle.textContent = 'Notifications are already on.';
+    gateCopy.textContent = 'You are set. When a timer ends, this app can play a sound and send a desktop popup.';
+    gateFoot.textContent = 'No extra setup needed.';
+    gateArrowLabel.textContent = 'notifications already enabled';
+    return;
+  }
+
+  if (permission === 'unsupported') {
+    banner.classList.add('show');
+    bannerTitle.textContent = 'Notifications are not supported here';
+    bannerCopy.textContent = 'The timer still works, but your browser cannot show desktop timer alerts.';
+    bannerButton.textContent = 'Check again';
+    bannerButton.style.display = 'none';
+    return;
+  }
+
+  banner.classList.add('show');
+  bannerTitle.textContent = permission === 'denied' ? 'Notifications are blocked' : 'Notifications are still off';
+  bannerCopy.textContent = permission === 'denied'
+    ? 'The timer still works, but desktop popups are blocked in this browser right now.'
+    : 'The timer still works, but desktop popups and system alerts are not enabled yet.';
+  bannerButton.textContent = permission === 'denied' ? 'How to fix' : 'Enable';
+  bannerButton.style.display = 'inline-flex';
+
+  gateTitle.textContent = permission === 'default' ? 'Turn on timer alerts.' : 'Notifications are blocked right now.';
+  gateCopy.textContent = permission === 'default'
+    ? 'This app can ask for notification permission, but the browser prompt usually only appears after you click the button below.'
+    : 'Your browser says notifications are blocked. The timer still works, but it cannot show desktop popups until you re-enable them in site settings.';
+  gateFoot.textContent = permission === 'default'
+    ? 'Current status: not decided yet.'
+    : 'Current status: blocked. Use the browser site settings near the address bar to allow notifications, then refresh.';
+  gateArrowLabel.textContent = permission === 'default' ? 'the browser prompt usually shows up here' : 'check the site settings up here';
+}
+
+async function requestNotificationAccess() {
+  if (!('Notification' in window)) {
+    markNotificationGateSeen();
+    updateNotificationUI();
+    notify('This browser does not support notifications.');
+    return;
+  }
+
+  try {
+    const currentPermission = getNotificationSupportState();
+    if (currentPermission === 'denied') {
+      updateNotificationUI();
+      notify('Notifications are blocked in browser settings. Re-enable them there first.');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'default') {
+      markNotificationGateSeen();
+    }
+    updateNotificationUI();
+    if (permission === 'granted') {
+      notify('Notifications enabled.');
+      new Notification('Notifications are on', {
+        body: 'You will get a desktop alert when the timer ends.'
+      });
+    } else if (permission === 'denied') {
+      notify('Notifications blocked. The timer will still work with limited alerts.');
+    } else {
+      notify('The browser did not grant notifications yet.');
+    }
+  } catch (error) {
+    console.error('Notification permission request failed', error);
+    updateNotificationUI();
+  }
+}
+
+function dismissNotificationGate() {
+  markNotificationGateSeen();
+  updateNotificationUI();
+  notify('Continuing without desktop notifications.');
+}
+
+function playTimerDoneSound() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+
+  try {
+    const ctx = new AudioCtx();
+    const master = ctx.createGain();
+    master.gain.value = 0.05;
+    master.connect(ctx.destination);
+
+    [0, 0.18, 0.36].forEach((offset, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = index === 2 ? 'triangle' : 'sine';
+      osc.frequency.value = [880, 988, 1318][index];
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + 0.22);
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.24);
+    });
+
+    setTimeout(() => {
+      if (ctx.state !== 'closed') ctx.close().catch(() => {});
+    }, 900);
+  } catch (error) {
+    console.error('Could not play timer sound', error);
+  }
+}
+
+function sendTimerNotification(title, body) {
+  playTimerDoneSound();
+
+  if (getNotificationSupportState() === 'granted') {
+    try {
+      const notice = new Notification(title, {
+        body,
+        tag: 'focus-studio-timer',
+        renotify: true
+      });
+      notice.onclick = () => {
+        window.focus();
+        notice.close();
+      };
+    } catch (error) {
+      console.error('Could not create notification', error);
+    }
+  }
+}
+
+function normalizeState() {
+  state.selectedPomodoro = state.selectedPomodoro || 25;
+  state.visualDuration = state.visualDuration || state.duration || 25 * 60;
+  state.currentTrackName = state.currentTrackName || '';
+  state.currentTrackSub = state.currentTrackSub || '';
+  state.pendingTrack = state.pendingTrack || null;
+  if (state.volume <= 1) {
+    state.volume = Math.round(state.volume * 100);
+  }
+  if (!Number.isFinite(state.volume)) {
+    state.volume = 35;
+  }
+}
+
+function loadFocusState() {
+  normalizeState();
+  try {
+    const raw = localStorage.getItem(FOCUS_STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    state.sessions = Number(saved.sessions) || 0;
+    state.totalMins = Number(saved.totalMins) || 0;
+    state.selectedPomodoro = Number(saved.selectedPomodoro) || state.selectedPomodoro;
+    state.tasks = Array.isArray(saved.tasks) ? saved.tasks : state.tasks;
+    state.tasksDone = state.tasks.filter(task => task.done).length;
+    state.volume = Number(saved.volume);
+    if (!Number.isFinite(state.volume)) state.volume = 35;
+  } catch (error) {
+    console.error('Could not restore saved focus state', error);
+  }
+}
+
+function saveFocusState() {
+  localStorage.setItem(FOCUS_STORAGE_KEY, JSON.stringify({
+    sessions: state.sessions,
+    totalMins: state.totalMins,
+    selectedPomodoro: state.selectedPomodoro,
+    tasks: state.tasks,
+    volume: state.volume
+  }));
+}
+
+function updateRingFill() {
+  const visualDuration = Math.max(state.visualDuration || state.duration || 1, 1);
+  const pct = Math.min(1, Math.max(0, state.remaining / visualDuration));
+  ring.style.strokeDashoffset = circumference * (1 - pct);
+  ring.style.stroke = FOCUS_MODES[state.mode].color;
+}
+
+function refreshTimer() {
+  document.getElementById('timerDisplay').textContent = formatTime(state.remaining);
+  document.getElementById('timerLabel').textContent = FOCUS_MODES[state.mode].label;
+  const timerWrap = document.querySelector('.timer-ring-wrap');
+  timerWrap.classList.toggle('is-wide', formatTime(state.remaining).length > 5);
+  updateRingFill();
+}
+
+function refreshStats() {
+  document.getElementById('sessionsCount').textContent = state.sessions;
+  document.getElementById('totalMins').textContent = state.totalMins;
+  document.getElementById('tasksCount').textContent = state.tasksDone;
+  document.getElementById('streak-text').textContent = `${state.sessions} session${state.sessions === 1 ? '' : 's'} today`;
+}
+
+function setMode(mode) {
+  if (state.running) {
+    notify('Pause the current timer before switching modes.');
+    return;
+  }
+
+  state.mode = mode;
+  document.querySelectorAll('.mode-tab').forEach(button => {
+    button.classList.toggle('active', button.dataset.mode === mode);
+  });
+
+  state.duration = (mode === 'pomodoro' ? state.selectedPomodoro : FOCUS_MODES[mode].defaultMinutes) * 60;
+  state.visualDuration = state.duration;
+  state.remaining = state.duration;
+  document.getElementById('durationRow').style.display = mode === 'pomodoro' ? 'flex' : 'none';
+  refreshTimer();
+}
+
+function setDuration(mins, el, silent) {
+  if (state.running) {
+    notify('Use the live adjust buttons while the timer is running.');
+    return;
+  }
+
+  state.mode = 'pomodoro';
+  state.selectedPomodoro = mins;
+  state.duration = mins * 60;
+  state.visualDuration = state.duration;
+  state.remaining = state.duration;
+
+  document.querySelectorAll('.mode-tab').forEach(button => {
+    button.classList.toggle('active', button.dataset.mode === 'pomodoro');
+  });
+
+  document.querySelectorAll('.dur-btn').forEach(button => {
+    button.classList.toggle('active', Number(button.dataset.min) === mins);
+  });
+
+  document.getElementById('durationRow').style.display = 'flex';
+  refreshTimer();
+  if (!silent) saveFocusState();
+}
+
+function adjustTimer(deltaMinutes) {
+  const elapsed = state.duration - state.remaining;
+  const nextDuration = Math.max(elapsed + 60, state.duration + deltaMinutes * 60);
+  if (nextDuration === state.duration) return;
+
+  state.duration = nextDuration;
+  state.visualDuration = Math.max(state.visualDuration || 0, state.duration);
+  state.remaining = Math.max(1, state.duration - elapsed);
+
+  if (state.mode === 'pomodoro') {
+    state.selectedPomodoro = Math.round(state.duration / 60);
+    document.querySelectorAll('.dur-btn').forEach(button => button.classList.remove('active'));
+  }
+
+  refreshTimer();
+  saveFocusState();
+  notify(`${deltaMinutes > 0 ? 'Added' : 'Trimmed'} ${Math.abs(deltaMinutes)} minute${Math.abs(deltaMinutes) === 1 ? '' : 's'}.`);
+}
+
+function startTimer() {
+  state.running = true;
+  updatePlayBtn();
+  clearInterval(state.interval);
+  state.interval = setInterval(() => {
+    state.remaining -= 1;
+    if (state.remaining <= 0) {
+      state.remaining = 0;
+      refreshTimer();
+      clearInterval(state.interval);
+      state.running = false;
+      updatePlayBtn();
+      onSessionEnd();
+      return;
+    }
+    refreshTimer();
+  }, 1000);
+}
+
+function pauseTimer() {
+  state.running = false;
+  clearInterval(state.interval);
+  updatePlayBtn();
+}
+
+function resetTimer() {
+  pauseTimer();
+  state.remaining = state.duration;
+  refreshTimer();
+}
+
+function skipTimer() {
+  pauseTimer();
+  onSessionEnd();
+}
+
+function toggleTimer() {
+  if (state.running) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+}
+
+function updatePlayBtn() {
+  const button = document.getElementById('playBtn');
+  const icon = document.getElementById('playIcon');
+  button.classList.toggle('is-running', state.running);
+  if (state.running) {
+    icon.innerHTML = '<path d="M7 4H10V20H7ZM14 4H17V20H14Z"></path>';
+  } else {
+    icon.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+  }
+}
+
+function onSessionEnd() {
+  if (state.mode === 'pomodoro') {
+    state.sessions += 1;
+    state.totalMins += Math.round(state.duration / 60);
+    refreshStats();
+    saveFocusState();
+    const completeText = `You focused for ${Math.round(state.duration / 60)} minutes. Take a short break, then come back for another clean block.`;
+    document.getElementById('completeMsg').textContent = completeText;
+    document.getElementById('sessionComplete').classList.add('show');
+    sendTimerNotification('Focus block finished', completeText);
+  } else {
+    notify('Break over. Back to focus.');
+    sendTimerNotification('Break finished', 'Your break is over. Jump back into the next focus block when you are ready.');
+    setDuration(state.selectedPomodoro, null, true);
+  }
+}
+
+function dismissComplete() {
+  document.getElementById('sessionComplete').classList.remove('show');
+  setMode('short');
+}
+
+function notify(message) {
+  const el = document.getElementById('notif');
+  el.textContent = message;
+  el.classList.add('show');
+  clearTimeout(notifyTimer);
+  notifyTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function updateTrackMeta(name, sub) {
+  document.getElementById('currentTrackName').textContent = name || 'No mix loaded yet';
+  document.getElementById('currentTrackSub').textContent = sub || 'Use a preset or paste your own YouTube link to play inside the app.';
+}
+
+function isEmbeddableContext() {
+  return /^https?:$/i.test(window.location.protocol);
+}
+
+function buildYouTubeUrl(track) {
+  if (!track) return 'https://www.youtube.com/';
+  if (track.kind === 'playlist') {
+    return `https://www.youtube.com/playlist?list=${encodeURIComponent(track.value)}`;
+  }
+  return `https://www.youtube.com/watch?v=${encodeURIComponent(track.value)}`;
+}
+
+function showEmbedFallback(track, reason) {
+  const placeholder = document.getElementById('ytPlaceholder');
+  const url = buildYouTubeUrl(track);
+  placeholder.classList.remove('hidden');
+  placeholder.innerHTML = `
+    <div class="placeholder-chip">YouTube needs a web page context</div>
+    <div>${reason}</div>
+    <div><a href="${url}" target="_blank" rel="noopener" style="color:#fff7fd;font-weight:700;text-decoration:underline">Open this mix on YouTube</a></div>
+  `;
+  if (track) {
+    state.currentTrack = track.id;
+    updateTrackMeta(track.name, `${track.sub}. Opened as a fallback because embeds need a valid HTTP referrer.`);
+    renderTracks();
+  }
+}
+
+function renderTracks() {
+  const list = document.getElementById('trackList');
+  list.innerHTML = YT_TRACKS.map(track => `
+    <button class="yt-preset ${state.currentTrack === track.id ? 'active' : ''}" onclick="playTrack('${track.id}')">
+      <strong>${track.name}</strong>
+      <span>${track.sub}</span>
+    </button>
+  `).join('');
+}
+
+function normalizeTrackInput(input) {
+  const trimmed = String(input || '').trim();
+  if (!trimmed) return null;
+
+  const preset = YT_TRACKS.find(track => track.id === trimmed);
+  if (preset) return preset;
+
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) {
+    return { id: 'custom-video', name: 'Custom YouTube video', sub: 'Loaded from a pasted video ID', kind: 'video', value: trimmed };
+  }
+
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.replace(/^www\./, '');
+    const listId = url.searchParams.get('list');
+    const videoId = url.searchParams.get('v');
+
+    if (listId) {
+      return { id: 'custom-playlist', name: 'Custom YouTube playlist', sub: 'Loaded from a pasted playlist link', kind: 'playlist', value: listId };
+    }
+
+    if (host === 'youtu.be') {
+      const shortId = url.pathname.split('/').filter(Boolean)[0];
+      if (shortId) {
+        return { id: 'custom-video', name: 'Custom YouTube video', sub: 'Loaded from a short YouTube link', kind: 'video', value: shortId };
+      }
+    }
+
+    if (videoId) {
+      return { id: 'custom-video', name: 'Custom YouTube video', sub: 'Loaded from a pasted YouTube link', kind: 'video', value: videoId };
+    }
+
+    const parts = url.pathname.split('/').filter(Boolean);
+    const specialIndex = parts.findIndex(part => ['embed', 'shorts', 'live'].includes(part));
+    if (specialIndex > -1 && parts[specialIndex + 1]) {
+      return { id: 'custom-video', name: 'Custom YouTube video', sub: 'Loaded from a YouTube path', kind: 'video', value: parts[specialIndex + 1] };
+    }
+  } catch (error) {
+    return null;
+  }
+
+  return null;
+}
+
+function loadYouTubeApi() {
+  if (!isEmbeddableContext()) return;
+  if (window.YT && window.YT.Player) {
+    ytApiReady = true;
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = 'https://www.youtube.com/iframe_api';
+  script.async = true;
+  document.head.appendChild(script);
+}
+
+function dispatchTrack(track) {
+  if (!ytPlayer || !ytPlayerReady) {
+    state.pendingTrack = track;
+    return;
+  }
+
+  if (track.kind === 'playlist') {
+    ytPlayer.loadPlaylist({ listType: 'playlist', list: track.value, index: 0, startSeconds: 0 });
+  } else {
+    ytPlayer.loadVideoById(track.value);
+  }
+
+  if (typeof ytPlayer.setVolume === 'function') {
+    ytPlayer.setVolume(state.volume);
+  }
+
+  state.currentTrack = track.id;
+  state.currentTrackName = track.name;
+  state.currentTrackSub = track.sub;
+  document.getElementById('ytPlaceholder').classList.add('hidden');
+  updateTrackMeta(track.name, track.sub);
+  renderTracks();
+}
+
+function ensurePlayer(track) {
+  if (!isEmbeddableContext()) {
+    showEmbedFallback(track, 'This file is being opened locally, and YouTube blocks many embeds without an HTTP Referer header.');
+    return;
+  }
+
+  if (!ytApiReady || !window.YT || !window.YT.Player) {
+    state.pendingTrack = track;
+    notify('YouTube is still loading. Try again in a second.');
+    return;
+  }
+
+  if (ytPlayer) {
+    dispatchTrack(track);
+    return;
+  }
+
+  state.pendingTrack = track;
+  ytPlayer = new YT.Player('ytPlayer', {
+    host: 'https://www.youtube.com',
+    width: '100%',
+    height: '100%',
+    videoId: 'jfKfPfyJRdk',
+    playerVars: {
+      autoplay: 0,
+      controls: 1,
+      rel: 0,
+      playsinline: 1,
+      enablejsapi: 1,
+      origin: window.location.origin,
+      widget_referrer: window.location.href
+    },
+    events: {
+      onReady: event => {
+        ytPlayerReady = true;
+        const iframe = event.target.getIframe && event.target.getIframe();
+        if (iframe) {
+          iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        }
+        event.target.setVolume(state.volume);
+        if (state.pendingTrack) {
+          const queued = state.pendingTrack;
+          state.pendingTrack = null;
+          dispatchTrack(queued);
+        }
+      },
+      onError: errorEvent => {
+        if (errorEvent && errorEvent.data === 153) {
+          showEmbedFallback(track, 'YouTube returned Error 153. That usually means the embed request does not include the HTTP Referer information YouTube expects.');
+          notify('YouTube embed blocked here. Open the file from localhost or use the fallback link.');
+        }
+      }
+    }
+  });
+}
+
+function playTrack(id) {
+  const track = normalizeTrackInput(id);
+  if (!track) return;
+  ensurePlayer(track);
+}
+
+function loadCustomTrack() {
+  const track = normalizeTrackInput(document.getElementById('ytInput').value);
+  if (!track) {
+    notify('Paste a valid YouTube video or playlist URL.');
+    return;
+  }
+  ensurePlayer(track);
+}
+
+function searchYouTube() {
+  const query = document.getElementById('ytInput').value.trim();
+  if (!query) {
+    notify('Type something to search first.');
+    return;
+  }
+  window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, '_blank', 'noopener');
+}
+
+function setVolume(value) {
+  state.volume = Number(value);
+  const volumeValue = document.getElementById('volumeValue');
+  if (volumeValue) {
+    volumeValue.textContent = `${state.volume}%`;
+  }
+  if (ytPlayerReady && ytPlayer && typeof ytPlayer.setVolume === 'function') {
+    ytPlayer.setVolume(state.volume);
+  }
+  saveFocusState();
+}
+
+function toggleTaskInput() {
+  state.showTaskInput = !state.showTaskInput;
+  const wrap = document.getElementById('taskInputWrap');
+  wrap.classList.toggle('hidden', !state.showTaskInput);
+  if (state.showTaskInput) document.getElementById('taskInput').focus();
+}
+
+function addTask() {
+  const input = document.getElementById('taskInput');
+  const text = input.value.trim();
+  if (!text) return;
+  state.tasks.push({ text, done: false, id: Date.now() });
+  input.value = '';
+  state.showTaskInput = false;
+  document.getElementById('taskInputWrap').classList.add('hidden');
+  renderTasks();
+  saveFocusState();
+}
+
+function toggleTask(id) {
+  const task = state.tasks.find(item => item.id === id);
+  if (!task) return;
+  task.done = !task.done;
+  renderTasks();
+  saveFocusState();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderTasks() {
+  const list = document.getElementById('taskList');
+  if (!state.tasks.length) {
+    list.innerHTML = `<p style="font-size:13px;color:var(--text3);text-align:center;padding:8px 0">Add your study goals above</p>`;
+    document.getElementById('progressWrap').style.display = 'none';
+    state.tasksDone = 0;
+    refreshStats();
+    return;
+  }
+
+  list.innerHTML = state.tasks.map(task => `
+    <div class="task-item ${task.done ? 'done' : ''}" onclick="toggleTask(${task.id})">
+      <div class="task-check">
+        <svg class="check-svg" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <span class="task-text">${escapeHtml(task.text)}</span>
+    </div>
+  `).join('');
+
+  const total = state.tasks.length;
+  const done = state.tasks.filter(task => task.done).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  state.tasksDone = done;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressWrap').style.display = 'flex';
+  refreshStats();
+}
+
+window.onYouTubeIframeAPIReady = function () {
+  ytApiReady = true;
+  if (state.pendingTrack) ensurePlayer(state.pendingTrack);
+};
+
+loadFocusState();
+document.getElementById('volSlider').value = state.volume;
+setVolume(state.volume);
+renderTracks();
+renderTasks();
+refreshStats();
+setDuration(state.selectedPomodoro, null, true);
+updatePlayBtn();
+updateTrackMeta('', '');
+loadYouTubeApi();
+updateNotificationUI();
+if (!isEmbeddableContext()) {
+  document.getElementById('currentTrackSub').textContent = 'YouTube embeds often fail from local files. Presets still work as fallback links, and embeds work when this file is served from localhost.';
+}
+</script>
+</body>
+</html>
