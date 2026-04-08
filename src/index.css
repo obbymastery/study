@@ -667,3 +667,467 @@ audio {
     margin-top: 8rem;
   }
 }
+
+.app-shell {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 84, 161, 0.18), transparent 24%),
+    radial-gradient(circle at 86% 12%, rgba(79, 146, 255, 0.16), transparent 28%),
+    linear-gradient(180deg, #08050d 0%, #07050c 44%, #040308 100%);
+}
+
+.main-shell-lyrics {
+  max-width: none;
+  min-height: 100vh;
+  padding-inline: clamp(0.9rem, 2vw, 1.5rem);
+  padding-block: 0.9rem;
+}
+
+.hero-shell {
+  overflow: hidden;
+  border-radius: 2.2rem;
+  box-shadow:
+    0 38px 120px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.hero-shell::before {
+  content: "";
+  position: absolute;
+  right: -4rem;
+  top: -4rem;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 3rem;
+  transform: rotate(18deg);
+  background: linear-gradient(135deg, rgba(255, 91, 189, 0.18), rgba(72, 124, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hero-shell::after {
+  content: "late-night study scene";
+  position: absolute;
+  right: 1.4rem;
+  top: 1.1rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero-kicker-strip {
+  width: fit-content;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.62);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.panel {
+  border-radius: 2rem;
+  backdrop-filter: none;
+}
+
+.panel-timer,
+.panel-goals,
+.panel-music {
+  position: relative;
+}
+
+.panel-timer::after,
+.panel-goals::after,
+.panel-music::after {
+  content: "";
+  position: absolute;
+  inset: auto 1.25rem 1.05rem auto;
+  width: 4.2rem;
+  height: 4.2rem;
+  border-radius: 1.4rem;
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.panel-timer::after {
+  background: linear-gradient(135deg, #ff68b8, #905bff);
+}
+
+.panel-goals::after {
+  background: linear-gradient(135deg, #7ccfff, #58f7d8);
+}
+
+.panel-music::after {
+  background: linear-gradient(135deg, #ffb25c, #ff6e9d);
+}
+
+.mode-row {
+  align-items: center;
+}
+
+.mode-row::before {
+  content: "scene switch";
+  color: rgba(255, 255, 255, 0.48);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-right: 0.25rem;
+}
+
+.stream-card,
+.category-card,
+.goal-pill,
+.current-song-card,
+.preview-panel,
+.slider-wrap {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.stream-card:hover,
+.category-card:hover {
+  transform: translateY(-3px) rotate(-0.3deg);
+}
+
+.lyrics-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.2rem 0.3rem 0.6rem;
+}
+
+.lyrics-topbar__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.lyrics-topbar__wordmark {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.lyrics-topbar__caption {
+  color: rgba(255, 255, 255, 0.62);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lyrics-topbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.lyrics-stage {
+  display: grid;
+  grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+  gap: 1rem;
+  min-height: calc(100vh - 6.75rem);
+}
+
+.lyrics-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 100%;
+}
+
+.lyrics-sidebar__block {
+  position: relative;
+  padding: 1rem;
+  border-radius: 1.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(160deg, rgba(18, 13, 31, 0.94), rgba(7, 6, 15, 0.94)),
+    rgba(0, 0, 0, 0.2);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.lyrics-sidebar__block--intro {
+  padding-top: 1.2rem;
+  background:
+    radial-gradient(circle at top right, rgba(255, 96, 181, 0.18), transparent 36%),
+    linear-gradient(160deg, rgba(19, 13, 31, 0.97), rgba(7, 6, 15, 0.95));
+}
+
+.lyrics-sidebar__title {
+  margin: 0.55rem 0 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.lyrics-sidebar__copy {
+  margin: 0.85rem 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.65;
+}
+
+.category-grid--lyrics {
+  grid-template-columns: 1fr;
+}
+
+.lyrics-sidebar__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 0.9rem;
+}
+
+.lyrics-sidebar__song {
+  margin: 0.45rem 0 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 2rem;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.lyrics-sidebar__artist {
+  margin: 0.4rem 0 0;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.lyrics-player-wrap {
+  flex: 1 1 auto;
+}
+
+.lyrics-player-frame {
+  overflow: hidden;
+  margin-top: 0.7rem;
+  border-radius: 1.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #090812;
+  aspect-ratio: 16 / 10;
+}
+
+.lyrics-player-frame__mount,
+.lyrics-player-frame iframe {
+  width: 100%;
+  height: 100%;
+}
+
+.lyrics-sidebar__meta {
+  display: grid;
+  gap: 0.24rem;
+  margin-top: 0.75rem;
+}
+
+.lyrics-sidebar__meta span {
+  font-weight: 600;
+  color: white;
+}
+
+.lyrics-sidebar__meta small {
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+}
+
+.lyrics-main {
+  position: relative;
+  overflow: hidden;
+  min-height: 100%;
+  padding: clamp(1.1rem, 2vw, 1.7rem);
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(255, 111, 176, 0.16), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(77, 129, 255, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(11, 10, 22, 0.97), rgba(7, 7, 15, 0.98));
+  box-shadow:
+    0 36px 80px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.lyrics-main::before {
+  content: attr(data-song);
+  position: absolute;
+  inset: 2rem auto auto 1.5rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(4rem, 14vw, 10rem);
+  line-height: 0.86;
+  letter-spacing: -0.09em;
+  color: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.lyrics-main__hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.lyrics-main__title {
+  margin: 0.3rem 0 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(3.2rem, 9vw, 7rem);
+  line-height: 0.88;
+  letter-spacing: -0.08em;
+  text-shadow: 0 0 24px rgba(255, 119, 205, 0.1);
+}
+
+.lyrics-main__subtitle {
+  margin: 0.35rem 0 0;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+.lyrics-ticker {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.15rem 0.8rem;
+  min-width: 7rem;
+  text-align: right;
+}
+
+.lyrics-ticker span {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.lyrics-ticker small {
+  color: rgba(255, 255, 255, 0.48);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.lyrics-live-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: calc(100vh - 13.8rem);
+  overflow: auto;
+  padding-right: 0.6rem;
+}
+
+.lyrics-live-copy--plain {
+  padding: 1rem 0.4rem 0 0;
+}
+
+.lyrics-live-copy--plain pre {
+  margin: 0;
+  white-space: pre-wrap;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(1.12rem, 2.1vw, 1.5rem);
+  line-height: 1.9;
+}
+
+.lyrics-line {
+  display: grid;
+  grid-template-columns: 4.2rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  padding: 0.55rem 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.38);
+  text-align: left;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.lyrics-line:hover {
+  color: rgba(255, 255, 255, 0.72);
+  transform: translateX(4px);
+}
+
+.lyrics-line__time {
+  padding-top: 0.6rem;
+  color: rgba(255, 255, 255, 0.28);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lyrics-line__text {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.9rem, 4.6vw, 4.4rem);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+  text-wrap: balance;
+}
+
+.lyrics-line--past {
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.lyrics-line--active {
+  color: white;
+}
+
+.lyrics-line--active .lyrics-line__time {
+  color: rgba(255, 120, 196, 0.86);
+}
+
+.lyrics-line--active .lyrics-line__text {
+  text-shadow:
+    0 0 16px rgba(255, 127, 206, 0.12),
+    0 0 34px rgba(96, 126, 255, 0.12);
+}
+
+.lyrics-empty {
+  min-height: 18rem;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+@media (max-width: 1100px) {
+  .lyrics-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .lyrics-live-copy {
+    height: auto;
+    min-height: 55vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .lyrics-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lyrics-main__hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lyrics-ticker {
+    text-align: left;
+  }
+
+  .lyrics-line {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .lyrics-line__time {
+    padding-top: 0;
+  }
+
+  .lyrics-line__text {
+    font-size: clamp(1.8rem, 8vw, 2.9rem);
+  }
+}

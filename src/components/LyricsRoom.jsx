@@ -1,35 +1,65 @@
-import { Button, Card, CardContent, CardHeader, Chip } from "@heroui/react";
+import { useEffect, useRef } from "react";
+import { Button, Chip } from "@heroui/react";
 
 import { SONG_CATEGORIES } from "../data/songCatalog";
 import { providerMeta } from "../lib/lyrics";
 
+function formatClock(seconds) {
+  const safeSeconds = Math.max(0, Math.floor(seconds || 0));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = safeSeconds % 60;
+  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
+
 function LyricsRoom({
+  activeLyricIndex,
   categoryCount,
   currentSong,
   lyricsCategory,
   lyricsState,
+  musicSource,
+  onSeekToLyric,
   onSetCurrentSong,
   onSetLyricsCategory,
+  onSetMusicSource,
   onSetProviderChoice,
   onShuffleSong,
-  previewState,
+  onTogglePlayback,
+  playbackState,
+  playerMountRef,
   providerChoice,
   randomSongForCategory,
+  youtubeMusicUrl,
+  youtubeSearchUrl,
 }) {
+  const lyricLineRefs = useRef([]);
+
+  useEffect(() => {
+    if (activeLyricIndex < 0 || !lyricLineRefs.current[activeLyricIndex]) {
+      return;
+    }
+
+    lyricLineRefs.current[activeLyricIndex].scrollIntoView({
+      block: "center",
+      behavior: "smooth",
+    });
+  }, [activeLyricIndex]);
+
   return (
-    <section className="grid gap-6 xl:grid-cols-[0.95fr,1.05fr]">
-      <Card className="panel panel-lyrics">
-        <CardHeader className="flex items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow">lyrics mode</p>
-            <h2 className="panel-title">Pick a vibe, shuffle, and let the words land.</h2>
-          </div>
-          <Chip className="rounded-full bg-white/10 text-white" variant="flat">
-            fallback providers
-          </Chip>
-        </CardHeader>
-        <CardContent className="gap-5">
-          <div className="category-grid">
+    <section className="lyrics-stage">
+      <aside className="lyrics-sidebar">
+        <div className="lyrics-sidebar__block lyrics-sidebar__block--intro">
+          <div className="eyebrow">lyrics mode</div>
+          <h2 className="lyrics-sidebar__title">Full song. Full screen. Live lines.</h2>
+          <p className="lyrics-sidebar__copy">
+            The player resolves full YouTube playback through the Worker route. LRCLIB synced
+            timestamps drive the live line focus when they exist.
+          </p>
+        </div>
+
+        <div className="lyrics-sidebar__block">
+          <div className="eyebrow">category crate</div>
+          <div className="category-grid category-grid--lyrics">
             {SONG_CATEGORIES.map((category) => (
               <button
                 key={category.id}
@@ -45,105 +75,138 @@ function LyricsRoom({
               </button>
             ))}
           </div>
-
-          <div className="flex flex-wrap gap-3">
+          <div className="lyrics-sidebar__row">
             <Button radius="full" color="secondary" onPress={onShuffleSong}>
-              Shuffle {SONG_CATEGORIES.find((item) => item.id === lyricsCategory)?.label || "songs"}
+              Shuffle song
             </Button>
             <Chip className="rounded-full bg-black/20 text-white" variant="flat">
-              {categoryCount} songs in this crate
+              {categoryCount} songs
             </Chip>
           </div>
+        </div>
 
-          <div className="current-song-card">
-            <div>
-              <p className="eyebrow">now lined up</p>
-              <h3 className="text-3xl font-black tracking-tight text-white">{currentSong.title}</h3>
-              <p className="text-white/70">{currentSong.artist}</p>
-            </div>
-            <div className="provider-row">
-              {Object.entries(providerMeta).map(([id, data]) => (
-                <Button
-                  key={id}
-                  radius="full"
-                  size="sm"
-                  color={providerChoice === id ? "secondary" : "default"}
-                  variant={providerChoice === id ? "solid" : "bordered"}
-                  onPress={() => onSetProviderChoice(id)}
-                >
-                  {data.label}
-                </Button>
-              ))}
-            </div>
+        <div className="lyrics-sidebar__block">
+          <div className="eyebrow">now playing</div>
+          <h3 className="lyrics-sidebar__song">{currentSong.title}</h3>
+          <p className="lyrics-sidebar__artist">{currentSong.artist}</p>
+
+          <div className="lyrics-sidebar__row">
+            <Button radius="full" color="secondary" onPress={onTogglePlayback}>
+              {playbackState.isPlaying ? "Pause song" : "Play song"}
+            </Button>
+            <Button radius="full" variant="bordered" onPress={() => onSetCurrentSong(randomSongForCategory(lyricsCategory))}>
+              Next pick
+            </Button>
           </div>
 
-          <div className="preview-panel">
-            <div className="preview-art">
-              {previewState.artwork ? <img src={previewState.artwork} alt={currentSong.title} /> : null}
-            </div>
-            <div className="preview-copy">
-              <div className="eyebrow">song playback</div>
-              <p className="text-lg font-semibold text-white">
-                {previewState.album || "Preview search in progress"}
-              </p>
-              {previewState.previewUrl ? (
-                <audio controls className="w-full" src={previewState.previewUrl}>
-                  <track kind="captions" />
-                </audio>
-              ) : (
-                <p className="text-sm text-white/68">
-                  {previewState.status === "loading"
-                    ? "Looking for a playable preview clip..."
-                    : previewState.error || "No preview clip found for this song."}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-3">
-                {previewState.externalUrl ? (
-                  <a className="link-pill" href={previewState.externalUrl} target="_blank" rel="noreferrer">
-                    Open in Apple Music
-                  </a>
-                ) : null}
-                <a
-                  className="link-pill"
-                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${currentSong.artist} ${currentSong.title}`)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Search on YouTube
-                </a>
-              </div>
-            </div>
+          <div className="provider-row">
+            {Object.entries(providerMeta).map(([id, data]) => (
+              <Button
+                key={id}
+                radius="full"
+                size="sm"
+                color={providerChoice === id ? "secondary" : "default"}
+                variant={providerChoice === id ? "solid" : "bordered"}
+                onPress={() => onSetProviderChoice(id)}
+              >
+                {data.label}
+              </Button>
+            ))}
           </div>
 
-          <p className="tiny-note">
-            Preview clips come from Apple&apos;s Search API when available. Lyrics use LRCLIB first,
-            then fall back to lyrics.ovh.
-          </p>
-        </CardContent>
-      </Card>
+          <div className="provider-row">
+            <Button
+              radius="full"
+              size="sm"
+              color={musicSource === "youtube" ? "secondary" : "default"}
+              variant={musicSource === "youtube" ? "solid" : "bordered"}
+              onPress={() => onSetMusicSource("youtube")}
+            >
+              YouTube search
+            </Button>
+            <Button
+              radius="full"
+              size="sm"
+              color={musicSource === "ytmusic" ? "secondary" : "default"}
+              variant={musicSource === "ytmusic" ? "solid" : "bordered"}
+              onPress={() => onSetMusicSource("ytmusic")}
+            >
+              YT Music bias
+            </Button>
+          </div>
+        </div>
 
-      <Card className="panel panel-lyrics-reader">
-        <CardHeader className="flex items-start justify-between gap-4">
+        <div className="lyrics-sidebar__block lyrics-player-wrap">
+          <div className="eyebrow">full playback</div>
+          <div className="lyrics-player-frame">
+            <div ref={playerMountRef} className="lyrics-player-frame__mount" />
+          </div>
+          <div className="lyrics-sidebar__meta">
+            <span>{playbackState.resolvedTitle || "Resolving YouTube result..."}</span>
+            <small>{playbackState.resolvedChannel || playbackState.error || "Official YouTube playback in-app. YT Music stays as an external open."}</small>
+          </div>
+          <div className="lyrics-sidebar__row">
+            <a className="link-pill" href={youtubeSearchUrl} target="_blank" rel="noreferrer">
+              Open YouTube
+            </a>
+            <a className="link-pill" href={youtubeMusicUrl} target="_blank" rel="noreferrer">
+              Open YT Music
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <div className="lyrics-main" data-song={currentSong.title}>
+        <div className="lyrics-main__hero">
           <div>
-            <p className="eyebrow">lyric reader</p>
-            <h2 className="panel-title">
-              {lyricsState.providerLabel ? `Loaded from ${lyricsState.providerLabel}` : "Waiting on a provider"}
-            </h2>
+            <div className="eyebrow">live lyric reader</div>
+            <h1 className="lyrics-main__title">{currentSong.title}</h1>
+            <p className="lyrics-main__subtitle">
+              {lyricsState.providerLabel
+                ? `${lyricsState.providerLabel} • ${lyricsState.hasSyncedLyrics ? "synced" : "plain"}`
+                : "waiting on provider"}
+            </p>
           </div>
-          <Chip className="rounded-full bg-white/10 text-white" variant="flat">
-            {lyricsState.status}
-          </Chip>
-        </CardHeader>
-        <CardContent>
-          <div className="lyrics-copy">
+
+          <div className="lyrics-ticker">
+            <span>{formatClock(playbackState.currentTime)}</span>
+            <small>current</small>
+            <span>{formatClock(playbackState.duration)}</span>
+            <small>length</small>
+          </div>
+        </div>
+
+        {lyricsState.status === "success" && lyricsState.hasSyncedLyrics ? (
+          <div className="lyrics-live-copy">
+            {lyricsState.syncedLines.map((line, index) => (
+              <button
+                key={`${line.time}-${index}`}
+                type="button"
+                ref={(element) => {
+                  lyricLineRefs.current[index] = element;
+                }}
+                className={[
+                  "lyrics-line",
+                  index === activeLyricIndex ? "lyrics-line--active" : "",
+                  activeLyricIndex >= 0 && index < activeLyricIndex ? "lyrics-line--past" : "",
+                ].join(" ")}
+                onClick={() => onSeekToLyric(line.time)}
+              >
+                <span className="lyrics-line__time">{formatClock(line.time)}</span>
+                <span className="lyrics-line__text">{line.text}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="lyrics-live-copy lyrics-live-copy--plain">
             {lyricsState.status === "success" ? (
               <pre>{lyricsState.text}</pre>
             ) : (
               <div className="lyrics-empty">{lyricsState.message}</div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </section>
   );
 }

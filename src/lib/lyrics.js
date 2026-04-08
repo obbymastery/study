@@ -4,6 +4,33 @@ const providerMeta = {
   lyricsovh: { label: "lyrics.ovh" },
 };
 
+function parseSyncedLyrics(text) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => {
+      const match = line.match(/^\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\](.*)$/);
+      if (!match) {
+        return null;
+      }
+
+      const minutes = Number(match[1]);
+      const seconds = Number(match[2]);
+      const fraction = match[3] || "0";
+      const milliseconds = Number(fraction.padEnd(3, "0"));
+      const content = match[4].trim();
+
+      if (!content) {
+        return null;
+      }
+
+      return {
+        time: minutes * 60 + seconds + milliseconds / 1000,
+        text: content,
+      };
+    })
+    .filter(Boolean);
+}
+
 function cleanTitle(title) {
   return title
     .replace(/\([^)]*\)/g, "")
@@ -45,10 +72,13 @@ async function fetchFromLrclib(song) {
       provider: "lrclib",
       providerLabel: providerMeta.lrclib.label,
       isInstrumental: true,
+      hasSyncedLyrics: false,
+      syncedLines: [],
       text: "This track looks instrumental, so there are no lyrics to show.",
     };
   }
 
+  const syncedLines = track.syncedLyrics ? parseSyncedLyrics(track.syncedLyrics) : [];
   const text = stripTimecodes(track.syncedLyrics || track.plainLyrics || "");
   if (!text) {
     throw new Error("LRCLIB found the track but had no lyrics payload.");
@@ -58,6 +88,8 @@ async function fetchFromLrclib(song) {
     provider: "lrclib",
     providerLabel: providerMeta.lrclib.label,
     isInstrumental: false,
+    hasSyncedLyrics: syncedLines.length > 0,
+    syncedLines,
     text,
   };
 }
@@ -80,6 +112,8 @@ async function fetchFromLyricsOvh(song) {
     provider: "lyricsovh",
     providerLabel: providerMeta.lyricsovh.label,
     isInstrumental: false,
+    hasSyncedLyrics: false,
+    syncedLines: [],
     text,
   };
 }

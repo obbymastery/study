@@ -1,7 +1,11 @@
 {
-  "name": "smp",
+  "name": "focus-studio",
   "compatibility_date": "2026-04-07",
+  "main": "./worker/index.js",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
   }
 }

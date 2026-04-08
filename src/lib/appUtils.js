@@ -67,37 +67,6 @@ function pickRandomSong(category) {
   return pool[Math.floor(Math.random() * pool.length)] || DEFAULT_LYRICS_SONG;
 }
 
-async function fetchTrackPreview(song) {
-  const query = encodeURIComponent(`${song.artist} ${song.title}`);
-  const response = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=6`);
-  if (!response.ok) {
-    throw new Error("Preview search failed.");
-  }
-
-  const payload = await response.json();
-  const results = payload.results || [];
-  const title = song.title.toLowerCase();
-  const artist = song.artist.toLowerCase();
-  const match =
-    results.find((item) => {
-      return (
-        item.trackName?.toLowerCase().includes(title) &&
-        item.artistName?.toLowerCase().includes(artist)
-      );
-    }) || results[0];
-
-  if (!match) {
-    throw new Error("No preview match found.");
-  }
-
-  return {
-    artwork: match.artworkUrl100?.replace("100x100", "600x600") || "",
-    previewUrl: match.previewUrl || "",
-    externalUrl: match.trackViewUrl || "",
-    album: match.collectionName || "",
-  };
-}
-
 function getRingMetrics(isWide, progressValue) {
   const radius = isWide ? 116 : 102;
   const circumference = radius * 2 * Math.PI;
@@ -150,7 +119,6 @@ function getNotificationMessage(state) {
 
 export {
   buildEmbedUrl,
-  fetchTrackPreview,
   formatTime,
   getNotificationMessage,
   getRingMetrics,
