@@ -18,6 +18,8 @@ function LyricsRoom({
   lyricsCategory,
   lyricsState,
   musicSource,
+  routeCheck,
+  youtubeDebug,
   onSeekToLyric,
   onSetCurrentSong,
   onSetLyricsCategory,
@@ -52,8 +54,8 @@ function LyricsRoom({
           <div className="eyebrow">lyrics mode</div>
           <h2 className="lyrics-sidebar__title">Full song. Full screen. Live lines.</h2>
           <p className="lyrics-sidebar__copy">
-            The player resolves full YouTube playback through the Worker route. LRCLIB synced
-            timestamps drive the live line focus when they exist.
+            Hit play, let the song take over the page, and keep your eyes on one big lyric wall
+            instead of tiny text and extra clutter.
           </p>
         </div>
 
@@ -94,7 +96,11 @@ function LyricsRoom({
             <Button radius="full" color="secondary" onPress={onTogglePlayback}>
               {playbackState.isPlaying ? "Pause song" : "Play song"}
             </Button>
-            <Button radius="full" variant="bordered" onPress={() => onSetCurrentSong(randomSongForCategory(lyricsCategory))}>
+            <Button
+              radius="full"
+              variant="bordered"
+              onPress={() => onSetCurrentSong(randomSongForCategory(lyricsCategory))}
+            >
               Next pick
             </Button>
           </div>
@@ -136,6 +142,47 @@ function LyricsRoom({
           </div>
         </div>
 
+        <div className="lyrics-sidebar__block lyrics-sidebar__block--debug">
+          <div className="eyebrow">route check</div>
+          <div className="debug-pills">
+            <span className={youtubeDebug.configured ? "debug-pill debug-pill--ok" : "debug-pill debug-pill--warn"}>
+              {youtubeDebug.configured ? "YouTube key detected" : "YouTube key missing"}
+            </span>
+            <span className="debug-pill">
+              {youtubeDebug.source === "ytmusic" ? "YT Music search bias" : "YouTube search bias"}
+            </span>
+          </div>
+          <p className="lyrics-sidebar__copy">
+            {youtubeDebug.status === "loading"
+              ? "Checking the playback route right now."
+              : youtubeDebug.error
+                ? youtubeDebug.error
+                : youtubeDebug.advice || youtubeDebug.hint || "Playback route looks healthy."}
+          </p>
+          <div className="debug-grid">
+            <div>
+              <span>Route</span>
+              <strong>{youtubeDebug.route}</strong>
+            </div>
+            <div>
+              <span>Host</span>
+              <strong>{youtubeDebug.host || "same origin"}</strong>
+            </div>
+            <div>
+              <span>Song check</span>
+              <strong>{routeCheck.status}</strong>
+            </div>
+            <div>
+              <span>Player</span>
+              <strong>{playbackState.status}</strong>
+            </div>
+          </div>
+          <div className="debug-note">
+            <strong>{routeCheck.summary || "Waiting to test the song route."}</strong>
+            <span>{routeCheck.detail || "Pick a song to test lookup and playback."}</span>
+          </div>
+        </div>
+
         <div className="lyrics-sidebar__block lyrics-player-wrap">
           <div className="eyebrow">full playback</div>
           <div className="lyrics-player-frame">
@@ -143,7 +190,11 @@ function LyricsRoom({
           </div>
           <div className="lyrics-sidebar__meta">
             <span>{playbackState.resolvedTitle || "Resolving YouTube result..."}</span>
-            <small>{playbackState.resolvedChannel || playbackState.error || "Official YouTube playback in-app. YT Music stays as an external open."}</small>
+            <small>
+              {playbackState.resolvedChannel ||
+                playbackState.error ||
+                "If the player stays empty, the route check above should tell you why."}
+            </small>
           </div>
           <div className="lyrics-sidebar__row">
             <a className="link-pill" href={youtubeSearchUrl} target="_blank" rel="noreferrer">
@@ -163,12 +214,19 @@ function LyricsRoom({
             <h1 className="lyrics-main__title">{currentSong.title}</h1>
             <p className="lyrics-main__subtitle">
               {lyricsState.providerLabel
-                ? `${lyricsState.providerLabel} • ${lyricsState.hasSyncedLyrics ? "synced" : "plain"}`
+                ? `${lyricsState.providerLabel} | ${lyricsState.hasSyncedLyrics ? "synced" : "plain"}`
                 : "waiting on provider"}
             </p>
           </div>
 
           <div className="lyrics-ticker">
+            <div className="lyrics-wave" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
             <span>{formatClock(playbackState.currentTime)}</span>
             <small>current</small>
             <span>{formatClock(playbackState.duration)}</span>

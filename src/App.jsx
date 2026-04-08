@@ -118,6 +118,23 @@ function App() {
   const [providerChoice, setProviderChoice] = useState(pickStoredProvider(stored.providerChoice));
   const [musicSource, setMusicSource] = useState(pickStoredMusicSource(stored.musicSource));
   const [musicMessage, setMusicMessage] = useState(null);
+  const [youtubeDebug, setYoutubeDebug] = useState({
+    status: "idle",
+    configured: false,
+    route: "/api/debug/youtube-status",
+    host: "",
+    protocol: "",
+    source: "youtube",
+    hint: "",
+    advice: "",
+    error: "",
+  });
+  const [routeCheck, setRouteCheck] = useState({
+    status: "idle",
+    summary: "",
+    detail: "",
+    candidateCount: 0,
+  });
   const [lyricsState, setLyricsState] = useState({
     status: "idle",
     text: "",
@@ -339,6 +356,12 @@ function App() {
       resolvedTitle: "",
       resolvedChannel: "",
     });
+    setRouteCheck({
+      status: "loading",
+      summary: "Checking the live song lookup for this track.",
+      detail: "",
+      candidateCount: 0,
+    });
 
     resolveYouTubeCandidates(currentSong, musicSource)
       .then(async (payload) => {
@@ -346,6 +369,19 @@ function App() {
           return;
         }
 
+        const firstCandidate = payload.candidates?.[0];
+        setRouteCheck({
+          status: "ready",
+          summary: `${payload.candidates?.length || 0} playable result${
+            payload.candidates?.length === 1 ? "" : "s"
+          } found for this song.`,
+          detail: firstCandidate
+            ? `Top match: ${firstCandidate.title}${
+                firstCandidate.channelTitle ? ` by ${firstCandidate.channelTitle}` : ""
+              }`
+            : "The Worker answered, but it did not return a playable match.",
+          candidateCount: payload.candidates?.length || 0,
+        });
         await loadCandidate(payload.candidates, 0);
       })
       .catch((error) => {
@@ -353,6 +389,16 @@ function App() {
           return;
         }
 
+        setRouteCheck({
+          status: "error",
+          summary: error.message?.includes("YOUTUBE_API_KEY")
+            ? "The Worker reached the song route, but the runtime key is still missing."
+            : error.message?.includes("Failed to fetch")
+              ? "Could not reach the live song lookup route."
+              : "The Worker answered, but this song check failed.",
+          detail: error.message || "The song lookup failed before playback could start.",
+          candidateCount: 0,
+        });
         setPlaybackState({
           status: "error",
           candidates: [],
@@ -370,6 +416,78 @@ function App() {
       cancelled = true;
     };
   }, [currentSong, mode, musicSource]);
+
+  useEffect(() => {
+    if (mode !== "lyrics") {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    setYoutubeDebug((previous) => ({
+      ...previous,
+      status: "loading",
+      error: "",
+      source: musicSource,
+    }));
+
+    fetch(`/api/debug/youtube-status?source=${encodeURIComponent(musicSource)}`)
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok) {
+          setYoutubeDebug({
+            status: "error",
+            configured: false,
+            route: "/api/debug/youtube-status",
+            host: "",
+            protocol: "",
+            source: musicSource,
+            hint: "",
+            advice: "",
+            error: payload.error || "The YouTube debug route failed.",
+          });
+          return;
+        }
+
+        setYoutubeDebug({
+          status: "ready",
+          configured: Boolean(payload.configured),
+          route: payload.route || "/api/debug/youtube-status",
+          host: payload.host || "",
+          protocol: payload.protocol || "",
+          source: payload.source || musicSource,
+          hint: payload.hint || "",
+          advice: payload.advice || "",
+          error: "",
+        });
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        setYoutubeDebug({
+          status: "error",
+          configured: false,
+          route: "/api/debug/youtube-status",
+          host: "",
+          protocol: "",
+          source: musicSource,
+          hint: "",
+          advice: "",
+          error: error.message || "Could not reach the YouTube debug route.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, musicSource]);
 
   useEffect(() => {
     return () => {
@@ -586,11 +704,12 @@ function App() {
               </Chip>
               <div className="hero-kicker-strip">study timer / live lyrics / youtube player</div>
               <h1 className="hero-title">
-                Study when you want silence. Switch scenes when you want the actual song.
+                A study timer up front. A giant moving lyric wall when you want music.
               </h1>
               <p className="hero-body">
-                The clean deck stays for focus blocks, but lyrics mode becomes a full-screen stage
-                with synced lines and real YouTube playback instead of short previews.
+                Start the clock, keep your next tasks in view, then flip into a full-screen song
+                mode with bigger type, cleaner motion, and lyrics that follow the track when a
+                synced source exists.
               </p>
               <div className="hero-actions">
                 <Button
@@ -645,7 +764,7 @@ function App() {
             <div className="lyrics-topbar__brand">
               <span className="lyrics-topbar__wordmark">focus.studio</span>
               <span className="lyrics-topbar__caption">
-                full screen live lyrics with real YouTube playback
+                timer on one side, lyric wall on the other
               </span>
             </div>
             <div className="lyrics-topbar__actions">
@@ -653,7 +772,7 @@ function App() {
                 Back to focus
               </Button>
               <Button radius="full" color="secondary" onPress={() => setCurrentSong(pickRandomSong(lyricsCategory))}>
-                Shuffle song
+                Shuffle
               </Button>
             </div>
           </header>
@@ -680,7 +799,7 @@ function App() {
                 color="secondary"
                 onPress={() => setMode("focus")}
               >
-                Focus deck
+                Timer
               </Button>
               <Button
                 radius="full"
@@ -689,8 +808,27 @@ function App() {
                 color="secondary"
                 onPress={() => setMode("lyrics")}
               >
-                Lyrics stage
+                Lyrics
               </Button>
+            </div>
+
+            <div className="motion-ribbon" aria-hidden="true">
+              {[
+                "focus mode",
+                "live timer edits",
+                `${categoryCount} songs loaded`,
+                `${currentSong.artist} - ${currentSong.title}`,
+                notificationState === "granted" ? "notifications ready" : "notifications limited",
+                "lyrics wall",
+                "focus mode",
+                "live timer edits",
+                `${categoryCount} songs loaded`,
+                `${currentSong.artist} - ${currentSong.title}`,
+                notificationState === "granted" ? "notifications ready" : "notifications limited",
+                "lyrics wall",
+              ].map((label, index) => (
+                <span key={`${label}-${index}`}>{label}</span>
+              ))}
             </div>
 
             <FocusDeck
@@ -738,6 +876,8 @@ function App() {
             lyricsCategory={lyricsCategory}
             lyricsState={lyricsState}
             musicSource={musicSource}
+            routeCheck={routeCheck}
+            youtubeDebug={youtubeDebug}
             onSeekToLyric={seekToLyric}
             onSetCurrentSong={setCurrentSong}
             onSetLyricsCategory={setLyricsCategory}

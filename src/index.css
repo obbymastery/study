@@ -39,6 +39,32 @@ textarea {
   pointer-events: none;
 }
 
+.ambient-stage::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  background:
+    repeating-linear-gradient(
+      115deg,
+      transparent 0 22px,
+      rgba(255, 255, 255, 0.018) 22px 23px,
+      transparent 23px 64px
+    );
+  opacity: 0.38;
+  animation: sweepLines 24s linear infinite;
+}
+
+.ambient-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 22% 32%, rgba(255, 255, 255, 0.045), transparent 18%),
+    radial-gradient(circle at 74% 62%, rgba(255, 255, 255, 0.04), transparent 20%);
+  mix-blend-mode: screen;
+  animation: softPulse 12s ease-in-out infinite;
+}
+
 .orb {
   position: absolute;
   border-radius: 999px;
@@ -675,6 +701,17 @@ audio {
     linear-gradient(180deg, #08050d 0%, #07050c 44%, #040308 100%);
 }
 
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0 34%, rgba(255, 255, 255, 0.03) 44%, transparent 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 36%);
+  animation: pageSweep 16s linear infinite;
+}
+
 .main-shell-lyrics {
   max-width: none;
   min-height: 100vh;
@@ -704,7 +741,7 @@ audio {
 }
 
 .hero-shell::after {
-  content: "late-night study scene";
+  content: "focus scene";
   position: absolute;
   right: 1.4rem;
   top: 1.1rem;
@@ -794,6 +831,28 @@ audio {
   transform: translateY(-3px) rotate(-0.3deg);
 }
 
+.motion-ribbon {
+  display: flex;
+  gap: 0.8rem;
+  overflow: hidden;
+  padding: 0.4rem 0.2rem 0.2rem;
+  mask-image: linear-gradient(90deg, transparent 0, black 8%, black 92%, transparent 100%);
+}
+
+.motion-ribbon span {
+  flex: none;
+  padding: 0.6rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: ribbonSlide 18s linear infinite;
+}
+
 .lyrics-topbar {
   display: flex;
   align-items: center;
@@ -841,6 +900,9 @@ audio {
   flex-direction: column;
   gap: 1rem;
   min-height: 100%;
+  position: sticky;
+  top: 0.9rem;
+  align-self: start;
 }
 
 .lyrics-sidebar__block {
@@ -852,6 +914,32 @@ audio {
     linear-gradient(160deg, rgba(18, 13, 31, 0.94), rgba(7, 6, 15, 0.94)),
     rgba(0, 0, 0, 0.2);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.lyrics-sidebar__block:nth-child(2) {
+  background:
+    radial-gradient(circle at top right, rgba(79, 189, 255, 0.12), transparent 36%),
+    linear-gradient(160deg, rgba(15, 18, 34, 0.95), rgba(7, 6, 15, 0.94));
+}
+
+.lyrics-sidebar__block:nth-child(3) {
+  background:
+    radial-gradient(circle at top left, rgba(255, 168, 102, 0.14), transparent 34%),
+    linear-gradient(160deg, rgba(27, 16, 24, 0.95), rgba(7, 6, 15, 0.94));
+}
+
+.lyrics-sidebar__block::after {
+  content: "";
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, rgba(255, 90, 178, 0.22), rgba(90, 113, 255, 0.08));
+  opacity: 0.55;
+  transform: rotate(12deg);
+  pointer-events: none;
 }
 
 .lyrics-sidebar__block--intro {
@@ -962,6 +1050,19 @@ audio {
   pointer-events: none;
 }
 
+.lyrics-main::after {
+  content: "";
+  position: absolute;
+  inset: auto -8% -18% auto;
+  width: 30rem;
+  height: 30rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(93, 119, 255, 0.18), transparent 64%);
+  filter: blur(16px);
+  animation: pulseGlow 10s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .lyrics-main__hero {
   position: relative;
   z-index: 1;
@@ -994,6 +1095,49 @@ audio {
   text-align: right;
 }
 
+.lyrics-wave {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: end;
+  align-items: end;
+  gap: 0.28rem;
+  height: 1.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.lyrics-wave span {
+  width: 0.28rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 124, 205, 0.7));
+  box-shadow: 0 0 14px rgba(255, 121, 207, 0.18);
+  transform-origin: bottom;
+  animation: waveBounce 1.2s ease-in-out infinite;
+}
+
+.lyrics-wave span:nth-child(1) {
+  height: 0.9rem;
+}
+
+.lyrics-wave span:nth-child(2) {
+  height: 1.3rem;
+  animation-delay: -0.2s;
+}
+
+.lyrics-wave span:nth-child(3) {
+  height: 0.7rem;
+  animation-delay: -0.4s;
+}
+
+.lyrics-wave span:nth-child(4) {
+  height: 1.1rem;
+  animation-delay: -0.15s;
+}
+
+.lyrics-wave span:nth-child(5) {
+  height: 0.82rem;
+  animation-delay: -0.3s;
+}
+
 .lyrics-ticker span {
   font-family: "Space Grotesk", sans-serif;
   font-size: 1.8rem;
@@ -1017,6 +1161,7 @@ audio {
   height: calc(100vh - 13.8rem);
   overflow: auto;
   padding-right: 0.6rem;
+  mask-image: linear-gradient(180deg, transparent 0, black 5%, black 95%, transparent 100%);
 }
 
 .lyrics-live-copy--plain {
@@ -1084,6 +1229,86 @@ audio {
     0 0 34px rgba(96, 126, 255, 0.12);
 }
 
+.debug-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.8rem;
+}
+
+.debug-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.84);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.debug-pill--ok {
+  background: rgba(99, 235, 182, 0.14);
+  color: rgba(162, 255, 218, 0.95);
+}
+
+.debug-pill--warn {
+  background: rgba(255, 133, 161, 0.14);
+  color: rgba(255, 198, 214, 0.95);
+}
+
+.debug-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.95rem;
+}
+
+.debug-grid div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.debug-grid span {
+  color: rgba(255, 255, 255, 0.48);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.debug-grid strong {
+  color: white;
+  font-size: 0.95rem;
+}
+
+.debug-note {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.95rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.debug-note strong {
+  color: white;
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.debug-note span {
+  color: rgba(255, 255, 255, 0.64);
+  line-height: 1.55;
+}
+
 .lyrics-empty {
   min-height: 18rem;
   display: grid;
@@ -1095,6 +1320,10 @@ audio {
 @media (max-width: 1100px) {
   .lyrics-stage {
     grid-template-columns: 1fr;
+  }
+
+  .lyrics-sidebar {
+    position: static;
   }
 
   .lyrics-live-copy {
@@ -1129,5 +1358,66 @@ audio {
 
   .lyrics-line__text {
     font-size: clamp(1.8rem, 8vw, 2.9rem);
+  }
+}
+
+@keyframes pageSweep {
+  from {
+    transform: translateX(-12%);
+  }
+  to {
+    transform: translateX(12%);
+  }
+}
+
+@keyframes ribbonSlide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-115%);
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes waveBounce {
+  0%,
+  100% {
+    transform: scaleY(0.66);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes sweepLines {
+  from {
+    transform: translate3d(-3%, 0, 0);
+  }
+  to {
+    transform: translate3d(3%, 0, 0);
+  }
+}
+
+@keyframes softPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
   }
 }

@@ -9,6 +9,26 @@ function json(data, init = {}) {
   });
 }
 
+function getRequestDetails(request, env) {
+  const url = new URL(request.url);
+
+  return {
+    configured: Boolean(env.YOUTUBE_API_KEY),
+    route: url.pathname,
+    origin: url.origin,
+    host: url.host,
+    protocol: url.protocol,
+    source: url.searchParams.get("source") || "youtube",
+    workerMode: "api-and-assets",
+    hint: env.YOUTUBE_API_KEY
+      ? "YouTube key is present in the Worker runtime."
+      : "YouTube key is missing from the Worker runtime environment.",
+    advice: env.YOUTUBE_API_KEY
+      ? "The Worker can see the key. If playback still fails, the next thing to check is the YouTube API response itself."
+      : "Add YOUTUBE_API_KEY to this Worker's runtime secrets, then deploy again.",
+  };
+}
+
 function cleanQueryPart(value = "") {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -114,6 +134,10 @@ async function searchYouTubeCandidates(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/debug/youtube-status") {
+      return json(getRequestDetails(request, env));
+    }
 
     if (url.pathname === "/api/youtube/search") {
       return searchYouTubeCandidates(request, env);
