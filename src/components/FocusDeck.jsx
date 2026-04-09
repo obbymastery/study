@@ -2,11 +2,13 @@ import { buildEmbedUrl, formatTime } from "../lib/appUtils";
 
 function FocusDeck({
   breakMinutes,
+  currentSong,
   focusMinutes,
   goalItems,
   goalText,
   onAdjustTimer,
   onLoadYouTubeTrack,
+  onOpenLyrics,
   onSetBreakMinutes,
   onSetFocusMinutes,
   onSetGoalText,
@@ -63,6 +65,17 @@ function FocusDeck({
               {amount > 0 ? `+${amount}` : amount} min
             </button>
           ))}
+        </div>
+
+        <div className="focus-hero__song">
+          <div className="focus-hero__song-copy">
+            <span>Current song</span>
+            <strong>{currentSong.title}</strong>
+            <small>{currentSong.artist}</small>
+          </div>
+          <button type="button" className="button" onClick={onOpenLyrics}>
+            Open lyrics
+          </button>
         </div>
       </section>
 

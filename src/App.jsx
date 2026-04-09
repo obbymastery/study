@@ -102,13 +102,13 @@ function renderHeaderCopy(mode, currentSong) {
   if (mode === "lyrics") {
     return {
       title: currentSong.title,
-      detail: `${currentSong.artist} in a full-screen live lyrics view.`,
+      detail: `${currentSong.artist} with live lyrics, full playback, and a calmer reading surface.`,
     };
   }
 
   return {
-    title: "A quieter, more refined study space.",
-    detail: "Timer, music, and lyrics arranged with more calm, space, and focus.",
+    title: "A study timer with room for music.",
+    detail: "Stay focused, keep your next tasks visible, and step into lyrics when the song starts to matter.",
   };
 }
 
@@ -768,11 +768,13 @@ function App() {
         {mode === "focus" ? (
           <FocusDeck
             breakMinutes={breakMinutes}
+            currentSong={currentSong}
             focusMinutes={focusMinutes}
             goalItems={goalItems}
             goalText={goalText}
             onAdjustTimer={adjustTimer}
             onLoadYouTubeTrack={loadYouTubeTrack}
+            onOpenLyrics={() => setMode("lyrics")}
             onSetBreakMinutes={(next) => {
               setBreakMinutes(next);
               if (!running && sessionType === "break") {
