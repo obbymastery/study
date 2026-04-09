@@ -30,6 +30,7 @@ function LyricsRoom({
   playerMountRef,
   providerChoice,
   randomSongForCategory,
+  themeMeta,
   youtubeMusicUrl,
   youtubeSearchUrl,
 }) {
@@ -51,37 +52,12 @@ function LyricsRoom({
       <div className="lyrics-shell">
         <aside className="lyrics-rail">
           <section className="rail-section">
-            <h2>Library</h2>
-            <p>{categoryCount} songs in the current category.</p>
-            <div className="category-list">
-              {SONG_CATEGORIES.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  className={lyricsCategory === category.id ? "list-button is-active" : "list-button"}
-                  onClick={() => {
-                    onSetLyricsCategory(category.id);
-                    onSetCurrentSong(randomSongForCategory(category.id));
-                  }}
-                >
-                  <strong>{category.label}</strong>
-                  <span>{category.blurb}</span>
-                </button>
-              ))}
-            </div>
-            <div className="button-row">
-              <button type="button" className="button button--primary" onClick={onShuffleSong}>
-                Shuffle
-              </button>
-            </div>
-          </section>
-
-          <section className="rail-section">
-            <h2>Song</h2>
+            <h2>Now playing</h2>
             <div className="song-block">
               <strong>{currentSong.title}</strong>
               <span>{currentSong.artist}</span>
             </div>
+            <p>{themeMeta.note}</p>
 
             <div className="button-row">
               <button type="button" className="button button--primary" onClick={onTogglePlayback}>
@@ -133,6 +109,32 @@ function LyricsRoom({
             </div>
           </section>
 
+          <section className="rail-section">
+            <h2>Library</h2>
+            <p>{categoryCount} songs in the current category.</p>
+            <div className="category-list">
+              {SONG_CATEGORIES.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={lyricsCategory === category.id ? "list-button is-active" : "list-button"}
+                  onClick={() => {
+                    onSetLyricsCategory(category.id);
+                    onSetCurrentSong(randomSongForCategory(category.id));
+                  }}
+                >
+                  <strong>{category.label}</strong>
+                  <span>{category.blurb}</span>
+                </button>
+              ))}
+            </div>
+            <div className="button-row">
+              <button type="button" className="button button--primary" onClick={onShuffleSong}>
+                Shuffle song
+              </button>
+            </div>
+          </section>
+
           <section className="rail-section rail-section--player">
             <h2>Player</h2>
             <div className="lyrics-player">
@@ -155,6 +157,36 @@ function LyricsRoom({
               </a>
             </div>
           </section>
+
+          <details className="debug-drawer">
+            <summary>Playback status</summary>
+            <div className="debug-drawer__body">
+              <div className="message-block">
+                <strong>{routeCheck.summary || "Waiting for a track lookup."}</strong>
+                <span>
+                  {youtubeDebug.error ||
+                    routeCheck.detail ||
+                    youtubeDebug.advice ||
+                    youtubeDebug.hint ||
+                    "The current song check will show up here."}
+                </span>
+              </div>
+              <dl className="data-list">
+                <div>
+                  <dt>Key</dt>
+                  <dd>{youtubeDebug.configured ? "Detected" : "Missing"}</dd>
+                </div>
+                <div>
+                  <dt>Route</dt>
+                  <dd>{youtubeDebug.route}</dd>
+                </div>
+                <div>
+                  <dt>Song lookup</dt>
+                  <dd>{routeCheck.status}</dd>
+                </div>
+              </dl>
+            </div>
+          </details>
         </aside>
 
         <section className="lyrics-panel">
@@ -190,59 +222,34 @@ function LyricsRoom({
             </div>
           </div>
 
-          <div className="lyrics-panel__status">
-            <div className="message-block">
-              <strong>{routeCheck.summary || "Waiting for a track lookup."}</strong>
-              <span>
-                {youtubeDebug.error ||
-                  routeCheck.detail ||
-                  youtubeDebug.advice ||
-                  youtubeDebug.hint ||
-                  "The current song check will show up here."}
-              </span>
-            </div>
-            <dl className="data-list">
-              <div>
-                <dt>Key</dt>
-                <dd>{youtubeDebug.configured ? "Detected" : "Missing"}</dd>
+          <div className="lyrics-stage">
+            {lyricsState.status === "success" && lyricsState.hasSyncedLyrics ? (
+              <div className="lyrics-copy lyrics-copy--live">
+                {lyricsState.syncedLines.map((line, index) => (
+                  <button
+                    key={`${line.time}-${index}`}
+                    type="button"
+                    ref={(element) => {
+                      lyricLineRefs.current[index] = element;
+                    }}
+                    className={index === activeLyricIndex ? "lyric-line is-active" : "lyric-line"}
+                    onClick={() => onSeekToLyric(line.time)}
+                  >
+                    <span className="lyric-line__time">{formatClock(line.time)}</span>
+                    <span className="lyric-line__text">{line.text}</span>
+                  </button>
+                ))}
               </div>
-              <div>
-                <dt>Route</dt>
-                <dd>{youtubeDebug.route}</dd>
+            ) : (
+              <div className="lyrics-copy lyrics-copy--plain">
+                {lyricsState.status === "success" ? (
+                  <pre>{lyricsState.text}</pre>
+                ) : (
+                  <div className="empty-state">{lyricsState.message}</div>
+                )}
               </div>
-              <div>
-                <dt>Song lookup</dt>
-                <dd>{routeCheck.status}</dd>
-              </div>
-            </dl>
+            )}
           </div>
-
-          {lyricsState.status === "success" && lyricsState.hasSyncedLyrics ? (
-            <div className="lyrics-copy lyrics-copy--live">
-              {lyricsState.syncedLines.map((line, index) => (
-                <button
-                  key={`${line.time}-${index}`}
-                  type="button"
-                  ref={(element) => {
-                    lyricLineRefs.current[index] = element;
-                  }}
-                  className={index === activeLyricIndex ? "lyric-line is-active" : "lyric-line"}
-                  onClick={() => onSeekToLyric(line.time)}
-                >
-                  <span className="lyric-line__time">{formatClock(line.time)}</span>
-                  <span className="lyric-line__text">{line.text}</span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="lyrics-copy lyrics-copy--plain">
-              {lyricsState.status === "success" ? (
-                <pre>{lyricsState.text}</pre>
-              ) : (
-                <div className="empty-state">{lyricsState.message}</div>
-              )}
-            </div>
-          )}
         </section>
       </div>
     </section>

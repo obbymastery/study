@@ -27,6 +27,52 @@ import {
 
 const STORAGE_KEY = "focus-studio-v4";
 const NOTIFICATION_GATE_KEY = "focus-studio-notification-gate-dismissed-v3";
+const THEME_SCENES = [
+  {
+    id: "lofi-study",
+    label: "Lofi Study",
+    note: "Soft light, low contrast, easy focus.",
+    kicker: "Late-night desk",
+  },
+  {
+    id: "anime-night",
+    label: "Anime Night",
+    note: "City glow and a little more dreaminess.",
+    kicker: "Window seat",
+  },
+  {
+    id: "autumn-study",
+    label: "Autumn Study",
+    note: "Warm leaves, lamp light, slower energy.",
+    kicker: "Autumn room",
+  },
+  {
+    id: "rainy-window",
+    label: "Rainy Window",
+    note: "Cool glass, dim reflections, steady calm.",
+    kicker: "Rain on glass",
+  },
+  {
+    id: "dark-focus",
+    label: "Dark Focus",
+    note: "Minimal and quiet when you want less.",
+    kicker: "After hours",
+  },
+];
+const AMBIENT_PARTICLES = [
+  { left: "5%", size: "8px", delay: "-2s", duration: "17s", drift: "22px" },
+  { left: "12%", size: "12px", delay: "-7s", duration: "23s", drift: "30px" },
+  { left: "19%", size: "10px", delay: "-11s", duration: "19s", drift: "18px" },
+  { left: "28%", size: "14px", delay: "-1s", duration: "27s", drift: "26px" },
+  { left: "37%", size: "9px", delay: "-14s", duration: "18s", drift: "24px" },
+  { left: "45%", size: "16px", delay: "-5s", duration: "25s", drift: "35px" },
+  { left: "56%", size: "11px", delay: "-9s", duration: "21s", drift: "16px" },
+  { left: "63%", size: "7px", delay: "-6s", duration: "15s", drift: "14px" },
+  { left: "71%", size: "13px", delay: "-15s", duration: "24s", drift: "28px" },
+  { left: "79%", size: "9px", delay: "-3s", duration: "18s", drift: "20px" },
+  { left: "87%", size: "15px", delay: "-13s", duration: "26s", drift: "34px" },
+  { left: "94%", size: "8px", delay: "-4s", duration: "16s", drift: "18px" },
+];
 const DEFAULT_STREAMS = [
   { id: "lofi-girl", name: "Lofi Girl stream", detail: "Classic study stream", kind: "video", value: "jfKfPfyJRdk" },
   { id: "sweet-girl", name: "Sweet Girl playlist", detail: "Lo-fi playlist", kind: "playlist", value: "PLqknkDPsDk3afCSylXnMIYRRb8UAAMO4F" },
@@ -88,6 +134,10 @@ function pickStoredMusicSource(value) {
   return value === "ytmusic" ? "ytmusic" : "youtube";
 }
 
+function pickStoredTheme(value) {
+  return THEME_SCENES.some((scene) => scene.id === value) ? value : "lofi-study";
+}
+
 function renderNotificationShortLabel(state) {
   if (state === "granted") {
     return "On";
@@ -102,14 +152,21 @@ function renderHeaderCopy(mode, currentSong) {
   if (mode === "lyrics") {
     return {
       title: currentSong.title,
-      detail: `${currentSong.artist} with live lyrics, full playback, and a calmer reading surface.`,
+      detail: `${currentSong.artist} with live lyrics, full playback, and a reading view meant to hold your attention for a while.`,
     };
   }
 
   return {
-    title: "A study timer with room for music.",
-    detail: "Stay focused, keep your next tasks visible, and step into lyrics when the song starts to matter.",
+    title: "A calmer place to study with music still in reach.",
+    detail: "Keep the timer in the middle, your tasks nearby, and a full lyrics room ready when the song starts pulling focus.",
   };
+}
+
+function formatLocalClock(value) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(value);
 }
 
 function App() {
@@ -140,7 +197,9 @@ function App() {
   const [currentSong, setCurrentSong] = useState(pickStoredSong(stored.currentSong));
   const [providerChoice, setProviderChoice] = useState(pickStoredProvider(stored.providerChoice));
   const [musicSource, setMusicSource] = useState(pickStoredMusicSource(stored.musicSource));
+  const [theme, setTheme] = useState(pickStoredTheme(stored.theme));
   const [musicMessage, setMusicMessage] = useState(null);
+  const [localClock, setLocalClock] = useState(() => new Date());
   const [youtubeDebug, setYoutubeDebug] = useState({
     status: "idle",
     configured: false,
@@ -192,6 +251,7 @@ function App() {
     ? `${sessionType === "focus" ? "Focus" : "Break"} running`
     : `${sessionType === "focus" ? "Focus" : "Break"} ready`;
   const headerCopy = renderHeaderCopy(mode, currentSong);
+  const activeTheme = THEME_SCENES.find((scene) => scene.id === theme) || THEME_SCENES[0];
 
   const activeLyricIndex = useMemo(() => {
     if (!lyricsState.hasSyncedLyrics || !lyricsState.syncedLines.length) {
@@ -225,6 +285,7 @@ function App() {
         currentSong,
         providerChoice,
         musicSource,
+        theme,
       }),
     );
   }, [
@@ -240,7 +301,13 @@ function App() {
     sessionTotal,
     sessionType,
     streamTrack,
+    theme,
   ]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setLocalClock(new Date()), 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -701,8 +768,26 @@ function App() {
   }
 
   return (
-    <div className={`app ${mode === "lyrics" ? "app--lyrics" : ""}`}>
-      <div className="app__backdrop" aria-hidden="true" />
+    <div className={`app ${mode === "lyrics" ? "app--lyrics" : ""}`} data-theme={theme}>
+      <div className="app__backdrop" aria-hidden="true">
+        <div className="app__backdrop-glow app__backdrop-glow--one" />
+        <div className="app__backdrop-glow app__backdrop-glow--two" />
+        <div className="app__ambient">
+          {AMBIENT_PARTICLES.map((particle, index) => (
+            <span
+              key={`${particle.left}-${index}`}
+              className="ambient-particle"
+              style={{
+                "--ambient-left": particle.left,
+                "--ambient-size": particle.size,
+                "--ambient-delay": particle.delay,
+                "--ambient-duration": particle.duration,
+                "--ambient-drift": particle.drift,
+              }}
+            />
+          ))}
+        </div>
+      </div>
 
       {shouldShowGate ? (
         <NotificationGate
@@ -714,28 +799,55 @@ function App() {
 
       <div className={`app__frame ${shouldShowGate ? "app__frame--locked" : ""}`}>
         <header className="app-masthead">
-          <div className="app-wordmark">focus.studio</div>
-          <h1 className="app-title">{headerCopy.title}</h1>
-          <p className="app-subtitle">{headerCopy.detail}</p>
+          <div className="app-topbar">
+            <div className="app-wordmark">focus.studio</div>
+            <nav className="app-toolbar__nav" aria-label="Mode switch">
+              <button
+                type="button"
+                className={mode === "focus" ? "tab-button is-active" : "tab-button"}
+                onClick={() => setMode("focus")}
+              >
+                Timer
+              </button>
+              <button
+                type="button"
+                className={mode === "lyrics" ? "tab-button is-active" : "tab-button"}
+                onClick={() => setMode("lyrics")}
+              >
+                Lyrics
+              </button>
+            </nav>
+            <div className="app-status-chip">
+              <span>{activeTheme.kicker}</span>
+              <strong>{formatLocalClock(localClock)}</strong>
+            </div>
+          </div>
 
-          <nav className="app-toolbar__nav" aria-label="Mode switch">
-            <button
-              type="button"
-              className={mode === "focus" ? "tab-button is-active" : "tab-button"}
-              onClick={() => setMode("focus")}
-            >
-              Timer
-            </button>
-            <button
-              type="button"
-              className={mode === "lyrics" ? "tab-button is-active" : "tab-button"}
-              onClick={() => setMode("lyrics")}
-            >
-              Lyrics
-            </button>
-          </nav>
+          <div className="app-headline">
+            <div className="app-kicker">{activeTheme.label}</div>
+            <h1 className="app-title">{headerCopy.title}</h1>
+            <p className="app-subtitle">{headerCopy.detail}</p>
+          </div>
+
+          <div className="scene-strip" aria-label="Theme selection">
+            {THEME_SCENES.map((scene) => (
+              <button
+                key={scene.id}
+                type="button"
+                className={theme === scene.id ? "scene-card is-active" : "scene-card"}
+                onClick={() => setTheme(scene.id)}
+              >
+                <strong>{scene.label}</strong>
+                <span>{scene.note}</span>
+              </button>
+            ))}
+          </div>
 
           <div className="app-toolbar__summary">
+            <div className="summary-block">
+              <span>Scene</span>
+              <strong>{activeTheme.label}</strong>
+            </div>
             <div className="summary-block">
               <span>Session</span>
               <strong>{playbackLabel}</strong>
@@ -801,6 +913,7 @@ function App() {
             sessionType={sessionType}
             streams={DEFAULT_STREAMS}
             streamTrack={streamTrack}
+            themeMeta={activeTheme}
             youtubeInput={youtubeInput}
           />
         ) : (
@@ -824,6 +937,7 @@ function App() {
             playerMountRef={playerMountRef}
             providerChoice={providerChoice}
             randomSongForCategory={pickRandomSong}
+            themeMeta={activeTheme}
             youtubeMusicUrl={buildYouTubeMusicSearchUrl(currentSong)}
             youtubeSearchUrl={buildYouTubeSearchUrl(currentSong)}
           />
