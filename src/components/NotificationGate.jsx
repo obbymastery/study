@@ -1,5 +1,3 @@
-import { Button, Card, CardContent, CardHeader, Chip } from "@heroui/react";
-
 function NotificationGate({ message, onEnable, onDismiss }) {
   return (
     <div className="notification-gate">
@@ -10,37 +8,27 @@ function NotificationGate({ message, onEnable, onDismiss }) {
         </svg>
       </div>
 
-      <Card className="notification-card">
-        <CardHeader className="flex-col items-start gap-3">
-          <Chip className="status-chip" color="secondary" variant="flat">
-            first step
-          </Chip>
-          <div>
-            <p className="eyebrow">real device alerts</p>
-            <h2 className="text-3xl font-black tracking-tight text-white">
-              Turn notifications on before you start.
-            </h2>
-          </div>
-        </CardHeader>
-        <CardContent className="gap-4 pt-0 text-white/78">
-          <p>
-            The prompt usually appears near the top-right. If you allow it, finished timers can
-            show up in Windows, macOS, Linux, and supported mobile browsers.
-          </p>
-          <div className="rounded-2xl border border-white/12 bg-white/6 p-4 text-sm text-white/72">
-            <div className="font-semibold text-white">Current status</div>
-            <div>{message}</div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button color="secondary" radius="full" onPress={onEnable}>
-              Enable notifications
-            </Button>
-            <Button radius="full" variant="bordered" onPress={onDismiss}>
-              Continue with limited alerts
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="notification-dialog">
+        <h2>Turn on notifications</h2>
+        <p>
+          The permission prompt usually shows up near the top-right. If you allow it, finished
+          timers can show up in your device notification tray.
+        </p>
+
+        <div className="status-panel">
+          <strong>Current status</strong>
+          <span>{message}</span>
+        </div>
+
+        <div className="button-row">
+          <button type="button" className="button button--primary" onClick={onEnable}>
+            Enable notifications
+          </button>
+          <button type="button" className="button" onClick={onDismiss}>
+            Continue without them
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

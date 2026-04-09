@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Card, CardContent, Chip } from "@heroui/react";
 
 import FocusDeck from "./components/FocusDeck";
 import LyricsRoom from "./components/LyricsRoom";
@@ -89,6 +88,16 @@ function pickStoredMusicSource(value) {
   return value === "ytmusic" ? "ytmusic" : "youtube";
 }
 
+function renderNotificationShortLabel(state) {
+  if (state === "granted") {
+    return "On";
+  }
+  if (state === "default") {
+    return "Ask";
+  }
+  return "Limited";
+}
+
 function App() {
   const [stored] = useState(() => readStoredState());
   const initialSessionType = stored.sessionType === "break" ? "break" : "focus";
@@ -162,10 +171,12 @@ function App() {
   const playerPollRef = useRef(null);
 
   const goalItems = parseGoals(goalText);
-  const isWideTimer = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`.length > 5;
   const shouldShowGate = notificationState === "default" && !notificationGateDismissed;
   const notificationMessage = getNotificationMessage(notificationState);
   const categoryCount = SONG_LIBRARY.filter((song) => song.category === lyricsCategory).length;
+  const playbackLabel = running
+    ? `${sessionType === "focus" ? "Focus" : "Break"} running`
+    : `${sessionType === "focus" ? "Focus" : "Break"} ready`;
 
   const activeLyricIndex = useMemo(() => {
     if (!lyricsState.hasSyncedLyrics || !lyricsState.syncedLines.length) {
@@ -309,8 +320,8 @@ function App() {
           message: result.isInstrumental
             ? result.text
             : result.hasSyncedLyrics
-              ? "Live synced lyrics are locked to the song clock."
-              : "This provider only had plain lyrics, so the view stays unsynced.",
+              ? "Synced lines are following the song."
+              : "This source only had plain lyrics.",
         });
       })
       .catch((error) => {
@@ -358,7 +369,7 @@ function App() {
     });
     setRouteCheck({
       status: "loading",
-      summary: "Checking the live song lookup for this track.",
+      summary: "Checking the song lookup for this track.",
       detail: "",
       candidateCount: 0,
     });
@@ -374,12 +385,12 @@ function App() {
           status: "ready",
           summary: `${payload.candidates?.length || 0} playable result${
             payload.candidates?.length === 1 ? "" : "s"
-          } found for this song.`,
+          } found.`,
           detail: firstCandidate
             ? `Top match: ${firstCandidate.title}${
                 firstCandidate.channelTitle ? ` by ${firstCandidate.channelTitle}` : ""
               }`
-            : "The Worker answered, but it did not return a playable match.",
+            : "The lookup returned no playable match.",
           candidateCount: payload.candidates?.length || 0,
         });
         await loadCandidate(payload.candidates, 0);
@@ -392,10 +403,10 @@ function App() {
         setRouteCheck({
           status: "error",
           summary: error.message?.includes("YOUTUBE_API_KEY")
-            ? "The Worker reached the song route, but the runtime key is still missing."
+            ? "The song route answered, but the runtime key is missing."
             : error.message?.includes("Failed to fetch")
-              ? "Could not reach the live song lookup route."
-              : "The Worker answered, but this song check failed.",
+              ? "The app could not reach the song route."
+              : "The song route answered, but playback setup failed.",
           detail: error.message || "The song lookup failed before playback could start.",
           candidateCount: 0,
         });
@@ -449,7 +460,7 @@ function App() {
             source: musicSource,
             hint: "",
             advice: "",
-            error: payload.error || "The YouTube debug route failed.",
+            error: payload.error || "The debug route failed.",
           });
           return;
         }
@@ -480,7 +491,7 @@ function App() {
           source: musicSource,
           hint: "",
           advice: "",
-          error: error.message || "Could not reach the YouTube debug route.",
+          error: error.message || "Could not reach the debug route.",
         });
       });
 
@@ -675,13 +686,8 @@ function App() {
   }
 
   return (
-    <div className={`app-shell min-h-screen text-white ${mode === "lyrics" ? "app-shell-lyrics" : ""}`}>
-      <div className="ambient-stage">
-        <div className="orb orb-a" />
-        <div className="orb orb-b" />
-        <div className="orb orb-c" />
-        <div className="grid-fade" />
-      </div>
+    <div className={`app ${mode === "lyrics" ? "app--lyrics" : ""}`}>
+      <div className="app__backdrop" aria-hidden="true" />
 
       {shouldShowGate ? (
         <NotificationGate
@@ -691,183 +697,96 @@ function App() {
         />
       ) : null}
 
-      <main
-        className={`main-shell mx-auto flex min-h-screen w-full flex-col gap-6 px-4 py-6 md:px-8 ${
-          mode === "lyrics" ? "main-shell-lyrics" : "max-w-7xl"
-        } ${shouldShowGate ? "pointer-events-none blur-sm" : ""}`}
-      >
-        {mode === "focus" ? (
-          <header className="hero-shell">
-            <div className="hero-copy">
-              <Chip className="status-chip" radius="full" variant="flat">
-                focus.studio
-              </Chip>
-              <div className="hero-kicker-strip">study timer / live lyrics / youtube player</div>
-              <h1 className="hero-title">
-                A study timer up front. A giant moving lyric wall when you want music.
-              </h1>
-              <p className="hero-body">
-                Start the clock, keep your next tasks in view, then flip into a full-screen song
-                mode with bigger type, cleaner motion, and lyrics that follow the track when a
-                synced source exists.
-              </p>
-              <div className="hero-actions">
-                <Button
-                  className="hero-primary"
-                  radius="full"
-                  color="secondary"
-                  onPress={() => setRunning((value) => !value)}
-                >
-                  {running ? "Pause timer" : "Start timer"}
-                </Button>
-                <Button
-                  className="hero-secondary"
-                  radius="full"
-                  variant="bordered"
-                  onPress={() => setMode("lyrics")}
-                >
-                  Open live lyrics
-                </Button>
-              </div>
-            </div>
+      <div className={`app__frame ${shouldShowGate ? "app__frame--locked" : ""}`}>
+        <header className="app-toolbar">
+          <div className="app-toolbar__brand">
+            <div className="app-toolbar__name">focus.studio</div>
+            <div className="app-toolbar__meta">Study timer, lyrics view, YouTube playback.</div>
+          </div>
 
-            <Card className="hero-stat-card">
-              <CardContent className="gap-5">
-                <div>
-                  <p className="metric-label">notification state</p>
-                  <p className="metric-value">{notificationState}</p>
-                  <p className="metric-copy">{notificationMessage}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="mini-metric">
-                    <span>{focusMinutes}m</span>
-                    <small>focus default</small>
-                  </div>
-                  <div className="mini-metric">
-                    <span>{breakMinutes}m</span>
-                    <small>break default</small>
-                  </div>
-                  <div className="mini-metric">
-                    <span>{goalItems.length}</span>
-                    <small>goals visible</small>
-                  </div>
-                  <div className="mini-metric">
-                    <span>{categoryCount}</span>
-                    <small>{lyricsCategory} songs</small>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </header>
-        ) : (
-          <header className="lyrics-topbar">
-            <div className="lyrics-topbar__brand">
-              <span className="lyrics-topbar__wordmark">focus.studio</span>
-              <span className="lyrics-topbar__caption">
-                timer on one side, lyric wall on the other
-              </span>
+          <nav className="app-toolbar__nav" aria-label="Mode switch">
+            <button
+              type="button"
+              className={mode === "focus" ? "tab-button is-active" : "tab-button"}
+              onClick={() => setMode("focus")}
+            >
+              Timer
+            </button>
+            <button
+              type="button"
+              className={mode === "lyrics" ? "tab-button is-active" : "tab-button"}
+              onClick={() => setMode("lyrics")}
+            >
+              Lyrics
+            </button>
+          </nav>
+
+          <div className="app-toolbar__summary">
+            <div className="summary-block">
+              <span>Session</span>
+              <strong>{playbackLabel}</strong>
             </div>
-            <div className="lyrics-topbar__actions">
-              <Button radius="full" variant="bordered" onPress={() => setMode("focus")}>
-                Back to focus
-              </Button>
-              <Button radius="full" color="secondary" onPress={() => setCurrentSong(pickRandomSong(lyricsCategory))}>
-                Shuffle
-              </Button>
+            <div className="summary-block">
+              <span>Alerts</span>
+              <strong>{renderNotificationShortLabel(notificationState)}</strong>
             </div>
-          </header>
-        )}
+            <div className="summary-block">
+              <span>Library</span>
+              <strong>{categoryCount} songs</strong>
+            </div>
+          </div>
+        </header>
 
         {notificationState !== "granted" ? (
           <div className="notice-banner">
-            <span>{notificationMessage}</span>
+            <div>
+              <strong>Notifications are limited.</strong>
+              <span>{notificationMessage}</span>
+            </div>
             {notificationState === "default" ? (
-              <Button size="sm" radius="full" color="secondary" onPress={enableNotifications}>
-                enable
-              </Button>
+              <button type="button" className="button button--primary" onClick={enableNotifications}>
+                Enable
+              </button>
             ) : null}
           </div>
         ) : null}
 
         {mode === "focus" ? (
-          <>
-            <div className="mode-row">
-              <Button
-                radius="full"
-                className="mode-chip active"
-                variant="solid"
-                color="secondary"
-                onPress={() => setMode("focus")}
-              >
-                Timer
-              </Button>
-              <Button
-                radius="full"
-                className="mode-chip"
-                variant="bordered"
-                color="secondary"
-                onPress={() => setMode("lyrics")}
-              >
-                Lyrics
-              </Button>
-            </div>
-
-            <div className="motion-ribbon" aria-hidden="true">
-              {[
-                "focus mode",
-                "live timer edits",
-                `${categoryCount} songs loaded`,
-                `${currentSong.artist} - ${currentSong.title}`,
-                notificationState === "granted" ? "notifications ready" : "notifications limited",
-                "lyrics wall",
-                "focus mode",
-                "live timer edits",
-                `${categoryCount} songs loaded`,
-                `${currentSong.artist} - ${currentSong.title}`,
-                notificationState === "granted" ? "notifications ready" : "notifications limited",
-                "lyrics wall",
-              ].map((label, index) => (
-                <span key={`${label}-${index}`}>{label}</span>
-              ))}
-            </div>
-
-            <FocusDeck
-              breakMinutes={breakMinutes}
-              focusMinutes={focusMinutes}
-              goalItems={goalItems}
-              goalText={goalText}
-              isWideTimer={isWideTimer}
-              onAdjustTimer={adjustTimer}
-              onLoadYouTubeTrack={loadYouTubeTrack}
-              onSetBreakMinutes={(next) => {
-                setBreakMinutes(next);
-                if (!running && sessionType === "break") {
-                  setSessionTotal(next * 60);
-                  setRemaining(next * 60);
-                }
-              }}
-              onSetFocusMinutes={(next) => {
-                setFocusMinutes(next);
-                if (!running && sessionType === "focus") {
-                  setSessionTotal(next * 60);
-                  setRemaining(next * 60);
-                }
-              }}
-              onSetGoalText={setGoalText}
-              onSetPresetSession={setPresetSession}
-              onSetRunning={setRunning}
-              onSetStreamTrack={setStreamTrack}
-              onSetYoutubeInput={setYoutubeInput}
-              musicMessage={musicMessage}
-              remaining={remaining}
-              running={running}
-              sessionTotal={sessionTotal}
-              sessionType={sessionType}
-              streams={DEFAULT_STREAMS}
-              streamTrack={streamTrack}
-              youtubeInput={youtubeInput}
-            />
-          </>
+          <FocusDeck
+            breakMinutes={breakMinutes}
+            focusMinutes={focusMinutes}
+            goalItems={goalItems}
+            goalText={goalText}
+            onAdjustTimer={adjustTimer}
+            onLoadYouTubeTrack={loadYouTubeTrack}
+            onSetBreakMinutes={(next) => {
+              setBreakMinutes(next);
+              if (!running && sessionType === "break") {
+                setSessionTotal(next * 60);
+                setRemaining(next * 60);
+              }
+            }}
+            onSetFocusMinutes={(next) => {
+              setFocusMinutes(next);
+              if (!running && sessionType === "focus") {
+                setSessionTotal(next * 60);
+                setRemaining(next * 60);
+              }
+            }}
+            onSetGoalText={setGoalText}
+            onSetPresetSession={setPresetSession}
+            onSetRunning={setRunning}
+            onSetStreamTrack={setStreamTrack}
+            onSetYoutubeInput={setYoutubeInput}
+            musicMessage={musicMessage}
+            remaining={remaining}
+            running={running}
+            sessionTotal={sessionTotal}
+            sessionType={sessionType}
+            streams={DEFAULT_STREAMS}
+            streamTrack={streamTrack}
+            youtubeInput={youtubeInput}
+          />
         ) : (
           <LyricsRoom
             activeLyricIndex={activeLyricIndex}
@@ -893,7 +812,7 @@ function App() {
             youtubeSearchUrl={buildYouTubeSearchUrl(currentSong)}
           />
         )}
-      </main>
+      </div>
     </div>
   );
 }
