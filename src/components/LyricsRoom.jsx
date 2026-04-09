@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SONG_CATEGORIES } from "../data/songCatalog";
 import { providerMeta } from "../lib/lyrics";
@@ -34,6 +34,7 @@ function LyricsRoom({
   youtubeMusicUrl,
   youtubeSearchUrl,
 }) {
+  const [showLibrary, setShowLibrary] = useState(true);
   const lyricLineRefs = useRef([]);
 
   useEffect(() => {
@@ -49,69 +50,32 @@ function LyricsRoom({
 
   return (
     <section className="lyrics-view">
-      <div className="lyrics-shell">
-        <aside className="lyrics-rail">
-          <section className="rail-section">
-            <h2>Now playing</h2>
-            <div className="song-block">
-              <strong>{currentSong.title}</strong>
-              <span>{currentSong.artist}</span>
-            </div>
-            <p>{themeMeta.note}</p>
+      <section className="lyrics-room">
+        <div className="lyrics-room__top">
+          <div className="lyrics-room__title">
+            <span>Lyrics room</span>
+            <h1>{currentSong.title}</h1>
+            <p>
+              {currentSong.artist}
+              {lyricsState.providerLabel ? ` | ${lyricsState.providerLabel}` : ""}
+              {lyricsState.providerLabel ? ` | ${lyricsState.hasSyncedLyrics ? "synced" : "plain"}` : ""}
+            </p>
+          </div>
+          <p className="lyrics-room__quote">{themeMeta.quote}</p>
+        </div>
 
-            <div className="button-row">
-              <button type="button" className="button button--primary" onClick={onTogglePlayback}>
-                {playbackState.isPlaying ? "Pause" : "Play"}
-              </button>
-              <button
-                type="button"
-                className="button"
-                onClick={() => onSetCurrentSong(randomSongForCategory(lyricsCategory))}
-              >
-                Next
-              </button>
-            </div>
-
-            <div className="choice-group">
-              <span>Lyrics source</span>
-              <div className="segmented-control">
-                {Object.entries(providerMeta).map(([id, data]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    className={providerChoice === id ? "segment-button is-active" : "segment-button"}
-                    onClick={() => onSetProviderChoice(id)}
-                  >
-                    {data.label}
-                  </button>
-                ))}
+        {showLibrary ? (
+          <aside className="floating-panel floating-panel--library">
+            <header className="panel-head">
+              <div>
+                <h2>Library</h2>
+                <p>{categoryCount} songs in this scene.</p>
               </div>
-            </div>
+              <button type="button" className="icon-button" onClick={() => setShowLibrary(false)} aria-label="Close library">
+                ×
+              </button>
+            </header>
 
-            <div className="choice-group">
-              <span>Music search</span>
-              <div className="segmented-control">
-                <button
-                  type="button"
-                  className={musicSource === "youtube" ? "segment-button is-active" : "segment-button"}
-                  onClick={() => onSetMusicSource("youtube")}
-                >
-                  YouTube
-                </button>
-                <button
-                  type="button"
-                  className={musicSource === "ytmusic" ? "segment-button is-active" : "segment-button"}
-                  onClick={() => onSetMusicSource("ytmusic")}
-                >
-                  YT Music
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <section className="rail-section">
-            <h2>Library</h2>
-            <p>{categoryCount} songs in the current category.</p>
             <div className="category-list">
               {SONG_CATEGORIES.map((category) => (
                 <button
@@ -128,35 +92,85 @@ function LyricsRoom({
                 </button>
               ))}
             </div>
+
             <div className="button-row">
               <button type="button" className="button button--primary" onClick={onShuffleSong}>
-                Shuffle song
+                Shuffle
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={() => onSetCurrentSong(randomSongForCategory(lyricsCategory))}
+              >
+                Next
               </button>
             </div>
-          </section>
+          </aside>
+        ) : (
+          <button type="button" className="drawer-tab drawer-tab--left" onClick={() => setShowLibrary(true)}>
+            Library
+          </button>
+        )}
 
-          <section className="rail-section rail-section--player">
-            <h2>Player</h2>
-            <div className="lyrics-player">
-              <div ref={playerMountRef} className="lyrics-player__mount" />
+        <aside className="floating-panel floating-panel--playback">
+          <header className="panel-head">
+            <div>
+              <h2>Playback</h2>
+              <p>{playbackState.resolvedTitle || "Resolving song..."}</p>
             </div>
-            <div className="song-block song-block--compact">
-              <strong>{playbackState.resolvedTitle || "Resolving song..."}</strong>
-              <span>
-                {playbackState.resolvedChannel ||
-                  playbackState.error ||
-                  "If the player stays empty, check the playback section below."}
-              </span>
+          </header>
+
+          <div className="lyrics-player">
+            <div ref={playerMountRef} className="lyrics-player__mount" />
+          </div>
+
+          <div className="button-row">
+            <button type="button" className="button button--primary" onClick={onTogglePlayback}>
+              {playbackState.isPlaying ? "Pause" : "Play"}
+            </button>
+            <a className="button" href={youtubeSearchUrl} target="_blank" rel="noreferrer">
+              YouTube
+            </a>
+            <a className="button" href={youtubeMusicUrl} target="_blank" rel="noreferrer">
+              YT Music
+            </a>
+          </div>
+
+          <div className="choice-group">
+            <span>Lyrics source</span>
+            <div className="segmented-control">
+              {Object.entries(providerMeta).map(([id, data]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={providerChoice === id ? "segment-button is-active" : "segment-button"}
+                  onClick={() => onSetProviderChoice(id)}
+                >
+                  {data.label}
+                </button>
+              ))}
             </div>
-            <div className="button-row">
-              <a className="button" href={youtubeSearchUrl} target="_blank" rel="noreferrer">
-                Open YouTube
-              </a>
-              <a className="button" href={youtubeMusicUrl} target="_blank" rel="noreferrer">
-                Open YT Music
-              </a>
+          </div>
+
+          <div className="choice-group">
+            <span>Music search</span>
+            <div className="segmented-control">
+              <button
+                type="button"
+                className={musicSource === "youtube" ? "segment-button is-active" : "segment-button"}
+                onClick={() => onSetMusicSource("youtube")}
+              >
+                YouTube
+              </button>
+              <button
+                type="button"
+                className={musicSource === "ytmusic" ? "segment-button is-active" : "segment-button"}
+                onClick={() => onSetMusicSource("ytmusic")}
+              >
+                YT Music
+              </button>
             </div>
-          </section>
+          </div>
 
           <details className="debug-drawer">
             <summary>Playback status</summary>
@@ -189,16 +203,12 @@ function LyricsRoom({
           </details>
         </aside>
 
-        <section className="lyrics-panel">
-          <div className="lyrics-panel__head">
-            <div className="lyrics-panel__intro">
-              <span>Lyrics room</span>
-              <h1>{currentSong.title}</h1>
-              <p>
-                {currentSong.artist}
-                {lyricsState.providerLabel ? ` | ${lyricsState.providerLabel}` : ""}
-                {lyricsState.providerLabel ? ` | ${lyricsState.hasSyncedLyrics ? "synced" : "plain"}` : ""}
-              </p>
+        <div className="lyrics-room__center">
+          <div className="lyrics-room__meta">
+            <div className="focus-now-playing">
+              <span>Now playing</span>
+              <strong>{currentSong.title}</strong>
+              <small>{currentSong.artist}</small>
             </div>
 
             <div className="clock-panel">
@@ -250,8 +260,8 @@ function LyricsRoom({
               </div>
             )}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </section>
   );
 }

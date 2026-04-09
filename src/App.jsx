@@ -30,33 +30,38 @@ const NOTIFICATION_GATE_KEY = "focus-studio-notification-gate-dismissed-v3";
 const THEME_SCENES = [
   {
     id: "lofi-study",
-    label: "Lofi Study",
-    note: "Soft light, low contrast, easy focus.",
-    kicker: "Late-night desk",
+    label: "Dream Cloud",
+    note: "Soft pastel clouds, still air, and easy focus.",
+    kicker: "Soft evening",
+    quote: "Work slowly enough to stay inside it.",
   },
   {
     id: "anime-night",
-    label: "Anime Night",
-    note: "City glow and a little more dreaminess.",
-    kicker: "Window seat",
+    label: "Forest Night",
+    note: "Deep greens, quiet lamp light, and a little fantasy.",
+    kicker: "Hidden grove",
+    quote: "Stay here until the page starts to feel warm.",
   },
   {
     id: "autumn-study",
-    label: "Autumn Study",
-    note: "Warm leaves, lamp light, slower energy.",
-    kicker: "Autumn room",
+    label: "Autumn Room",
+    note: "Warm leaves, dusk light, and a slower pace.",
+    kicker: "Autumn dusk",
+    quote: "A calm room can carry hard work a long way.",
   },
   {
     id: "rainy-window",
-    label: "Rainy Window",
-    note: "Cool glass, dim reflections, steady calm.",
+    label: "Rain Window",
+    note: "Rain, dim glass, and the kind of quiet that helps.",
     kicker: "Rain on glass",
+    quote: "Let the weather do the talking for a while.",
   },
   {
     id: "dark-focus",
-    label: "Dark Focus",
-    note: "Minimal and quiet when you want less.",
+    label: "Night City",
+    note: "A distant skyline, low noise, and fewer distractions.",
     kicker: "After hours",
+    quote: "Small progress still counts after midnight.",
   },
 ];
 const AMBIENT_PARTICLES = [
@@ -136,30 +141,6 @@ function pickStoredMusicSource(value) {
 
 function pickStoredTheme(value) {
   return THEME_SCENES.some((scene) => scene.id === value) ? value : "lofi-study";
-}
-
-function renderNotificationShortLabel(state) {
-  if (state === "granted") {
-    return "On";
-  }
-  if (state === "default") {
-    return "Ask";
-  }
-  return "Limited";
-}
-
-function renderHeaderCopy(mode, currentSong) {
-  if (mode === "lyrics") {
-    return {
-      title: currentSong.title,
-      detail: `${currentSong.artist} with live lyrics, full playback, and a reading view meant to hold your attention for a while.`,
-    };
-  }
-
-  return {
-    title: "A calmer place to study with music still in reach.",
-    detail: "Keep the timer in the middle, your tasks nearby, and a full lyrics room ready when the song starts pulling focus.",
-  };
 }
 
 function formatLocalClock(value) {
@@ -250,7 +231,6 @@ function App() {
   const playbackLabel = running
     ? `${sessionType === "focus" ? "Focus" : "Break"} running`
     : `${sessionType === "focus" ? "Focus" : "Break"} ready`;
-  const headerCopy = renderHeaderCopy(mode, currentSong);
   const activeTheme = THEME_SCENES.find((scene) => scene.id === theme) || THEME_SCENES[0];
 
   const activeLyricIndex = useMemo(() => {
@@ -800,14 +780,17 @@ function App() {
       <div className={`app__frame ${shouldShowGate ? "app__frame--locked" : ""}`}>
         <header className="app-masthead">
           <div className="app-topbar">
-            <div className="app-wordmark">focus.studio</div>
+            <div className="app-brand-lockup">
+              <div className="app-wordmark">focus.studio</div>
+              <span>{activeTheme.kicker}</span>
+            </div>
             <nav className="app-toolbar__nav" aria-label="Mode switch">
               <button
                 type="button"
                 className={mode === "focus" ? "tab-button is-active" : "tab-button"}
                 onClick={() => setMode("focus")}
               >
-                Timer
+                Study
               </button>
               <button
                 type="button"
@@ -818,15 +801,9 @@ function App() {
               </button>
             </nav>
             <div className="app-status-chip">
-              <span>{activeTheme.kicker}</span>
+              <span>{playbackLabel}</span>
               <strong>{formatLocalClock(localClock)}</strong>
             </div>
-          </div>
-
-          <div className="app-headline">
-            <div className="app-kicker">{activeTheme.label}</div>
-            <h1 className="app-title">{headerCopy.title}</h1>
-            <p className="app-subtitle">{headerCopy.detail}</p>
           </div>
 
           <div className="scene-strip" aria-label="Theme selection">
@@ -841,25 +818,6 @@ function App() {
                 <span>{scene.note}</span>
               </button>
             ))}
-          </div>
-
-          <div className="app-toolbar__summary">
-            <div className="summary-block">
-              <span>Scene</span>
-              <strong>{activeTheme.label}</strong>
-            </div>
-            <div className="summary-block">
-              <span>Session</span>
-              <strong>{playbackLabel}</strong>
-            </div>
-            <div className="summary-block">
-              <span>Alerts</span>
-              <strong>{renderNotificationShortLabel(notificationState)}</strong>
-            </div>
-            <div className="summary-block">
-              <span>Song library</span>
-              <strong>{categoryCount} loaded</strong>
-            </div>
           </div>
         </header>
 
