@@ -26,17 +26,27 @@ function FocusDeck({
   const progressValue = Math.min(100, Math.max(0, (remaining / Math.max(sessionTotal, 1)) * 100));
 
   return (
-    <section className="focus-grid">
-      <section className="surface">
-        <header className="section-head">
-          <div>
-            <h2>Timer</h2>
-            <p>You can change the time while the clock is running.</p>
+    <section className="focus-view">
+      <section className="focus-hero surface surface--hero">
+        <div className="focus-hero__top">
+          <div className="focus-hero__intro">
+            <span>{sessionType === "focus" ? "Focus session" : "Break session"}</span>
+            <strong>The clock stays adjustable while it runs.</strong>
           </div>
-          <div className="section-meta">{sessionType === "focus" ? "Focus session" : "Break session"}</div>
-        </header>
+          <div className="focus-hero__actions">
+            <button type="button" className="button button--primary" onClick={() => onSetRunning((value) => !value)}>
+              {running ? "Pause" : "Start"}
+            </button>
+            <button type="button" className="button" onClick={() => onSetPresetSession("focus")}>
+              Focus preset
+            </button>
+            <button type="button" className="button" onClick={() => onSetPresetSession("break")}>
+              Break preset
+            </button>
+          </div>
+        </div>
 
-        <div className="timer-panel">
+        <div className="timer-panel timer-panel--hero">
           <div className="time-display">{formatTime(remaining)}</div>
           <div className="progress-rail" aria-hidden="true">
             <div style={{ width: `${progressValue}%` }} />
@@ -47,67 +57,64 @@ function FocusDeck({
           </div>
         </div>
 
-        <div className="button-row">
-          <button type="button" className="button button--primary" onClick={() => onSetRunning((value) => !value)}>
-            {running ? "Pause" : "Start"}
-          </button>
-          <button type="button" className="button" onClick={() => onSetPresetSession("focus")}>
-            Focus preset
-          </button>
-          <button type="button" className="button" onClick={() => onSetPresetSession("break")}>
-            Break preset
-          </button>
-        </div>
-
-        <div className="quick-adjust">
+        <div className="quick-adjust quick-adjust--centered">
           {[-15, -5, 5, 10, 15].map((amount) => (
             <button key={amount} type="button" className="button button--small" onClick={() => onAdjustTimer(amount)}>
               {amount > 0 ? `+${amount}` : amount} min
             </button>
           ))}
         </div>
-
-        <div className="range-grid">
-          <label className="range-field">
-            <div className="range-field__head">
-              <span>Focus length</span>
-              <strong>{focusMinutes} min</strong>
-            </div>
-            <input
-              type="range"
-              min="10"
-              max="180"
-              step="5"
-              value={focusMinutes}
-              onChange={(event) => onSetFocusMinutes(Number(event.target.value))}
-            />
-          </label>
-
-          <label className="range-field">
-            <div className="range-field__head">
-              <span>Break length</span>
-              <strong>{breakMinutes} min</strong>
-            </div>
-            <input
-              type="range"
-              min="5"
-              max="45"
-              step="5"
-              value={breakMinutes}
-              onChange={(event) => onSetBreakMinutes(Number(event.target.value))}
-            />
-          </label>
-        </div>
       </section>
 
-      <div className="focus-stack">
+      <section className="focus-lower">
+        <section className="surface">
+          <header className="section-head">
+            <div>
+              <h2>Defaults</h2>
+              <p>Set your usual focus and break lengths.</p>
+            </div>
+          </header>
+
+          <div className="range-grid">
+            <label className="range-field">
+              <div className="range-field__head">
+                <span>Focus length</span>
+                <strong>{focusMinutes} min</strong>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="180"
+                step="5"
+                value={focusMinutes}
+                onChange={(event) => onSetFocusMinutes(Number(event.target.value))}
+              />
+            </label>
+
+            <label className="range-field">
+              <div className="range-field__head">
+                <span>Break length</span>
+                <strong>{breakMinutes} min</strong>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="45"
+                step="5"
+                value={breakMinutes}
+                onChange={(event) => onSetBreakMinutes(Number(event.target.value))}
+              />
+            </label>
+          </div>
+        </section>
+
         <section className="surface">
           <header className="section-head">
             <div>
               <h2>Today</h2>
-              <p>Keep the next few tasks visible.</p>
+              <p>Keep the next few tasks in view.</p>
             </div>
-            <div className="section-meta">{goalItems.length}/5 shown</div>
+            <div className="section-meta">{goalItems.length}/5 visible</div>
           </header>
 
           <label className="field">
@@ -130,11 +137,11 @@ function FocusDeck({
           </div>
         </section>
 
-        <section className="surface">
+        <section className="surface surface--player">
           <header className="section-head">
             <div>
               <h2>Player</h2>
-              <p>Use a preset or paste a YouTube link.</p>
+              <p>Choose a preset or paste your own YouTube link.</p>
             </div>
             <div className="section-meta">YouTube</div>
           </header>
@@ -191,7 +198,7 @@ function FocusDeck({
             />
           </div>
         </section>
-      </div>
+      </section>
     </section>
   );
 }

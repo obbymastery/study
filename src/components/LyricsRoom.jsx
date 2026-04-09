@@ -47,7 +47,8 @@ function LyricsRoom({
   }, [activeLyricIndex]);
 
   return (
-    <section className="lyrics-layout">
+    <section className="lyrics-view">
+      <div className="lyrics-shell">
       <aside className="lyrics-rail">
         <section className="rail-section">
           <h2>Library</h2>
@@ -251,6 +252,7 @@ function LyricsRoom({
           </div>
         )}
       </section>
+      </div>
     </section>
   );
 }

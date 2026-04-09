@@ -98,6 +98,20 @@ function renderNotificationShortLabel(state) {
   return "Limited";
 }
 
+function renderHeaderCopy(mode, currentSong) {
+  if (mode === "lyrics") {
+    return {
+      title: currentSong.title,
+      detail: `${currentSong.artist} in a full-screen live lyrics view.`,
+    };
+  }
+
+  return {
+    title: "A quieter, more refined study space.",
+    detail: "Timer, music, and lyrics arranged with more calm, space, and focus.",
+  };
+}
+
 function App() {
   const [stored] = useState(() => readStoredState());
   const initialSessionType = stored.sessionType === "break" ? "break" : "focus";
@@ -177,6 +191,7 @@ function App() {
   const playbackLabel = running
     ? `${sessionType === "focus" ? "Focus" : "Break"} running`
     : `${sessionType === "focus" ? "Focus" : "Break"} ready`;
+  const headerCopy = renderHeaderCopy(mode, currentSong);
 
   const activeLyricIndex = useMemo(() => {
     if (!lyricsState.hasSyncedLyrics || !lyricsState.syncedLines.length) {
@@ -698,11 +713,10 @@ function App() {
       ) : null}
 
       <div className={`app__frame ${shouldShowGate ? "app__frame--locked" : ""}`}>
-        <header className="app-toolbar">
-          <div className="app-toolbar__brand">
-            <div className="app-toolbar__name">focus.studio</div>
-            <div className="app-toolbar__meta">Study timer, lyrics view, YouTube playback.</div>
-          </div>
+        <header className="app-masthead">
+          <div className="app-wordmark">focus.studio</div>
+          <h1 className="app-title">{headerCopy.title}</h1>
+          <p className="app-subtitle">{headerCopy.detail}</p>
 
           <nav className="app-toolbar__nav" aria-label="Mode switch">
             <button
@@ -731,8 +745,8 @@ function App() {
               <strong>{renderNotificationShortLabel(notificationState)}</strong>
             </div>
             <div className="summary-block">
-              <span>Library</span>
-              <strong>{categoryCount} songs</strong>
+              <span>Song library</span>
+              <strong>{categoryCount} loaded</strong>
             </div>
           </div>
         </header>
