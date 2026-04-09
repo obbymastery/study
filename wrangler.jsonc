@@ -1,5 +1,5 @@
 {
-  "name": "focus-studio",
+  "name": "smp",
   "compatibility_date": "2026-04-07",
   "main": "./worker/index.js",
   "assets": {
